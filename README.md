@@ -54,8 +54,9 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/api/users`                  | Returns all alumni records created so far, as a JSON list |
 | PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
 | PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
+| DELETE | `/api/users/<id>`             | Deletes the record with the given `id` and returns the deleted record as JSON |
 
-`POST`, `PUT` and `PATCH` on `/api/users` require a request body, so they can't be tested from a browser address bar — use Postman (or curl) instead:
+`POST`, `PUT`, `PATCH` and `DELETE` on `/api/users` can't be tested from a browser address bar (it only sends GET) — use Postman (or curl) instead:
 
 ```bash
 curl -X POST http://localhost:5000/api/users \
@@ -65,6 +66,6 @@ curl -X POST http://localhost:5000/api/users \
   -d "email=fatih@example.com"
 ```
 
-In Postman: for POST, set the URL to `http://localhost:5000/api/users`; for PUT/PATCH, set it to `http://localhost:5000/api/users/<id>` (the `id` from the POST response). Go to the **Body** tab, select **form-data**, and add the relevant fields as key/value pairs.
+In Postman: for POST, set the URL to `http://localhost:5000/api/users`; for PUT/PATCH/DELETE, set it to `http://localhost:5000/api/users/<id>` (the `id` from the POST response). Go to the **Body** tab, select **form-data**, and add the relevant fields as key/value pairs (DELETE needs no body).
 
 Afterwards, visit `http://localhost:5000/api/users` in a browser (GET) to see the list of alumni records created so far. Records are kept in memory only, so they reset when the server restarts.

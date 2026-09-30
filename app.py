@@ -36,7 +36,7 @@ def users_collection():
     return jsonify(users)
 
 
-@app.route("/api/users/<int:user_id>", methods=["PUT", "PATCH"])
+@app.route("/api/users/<int:user_id>", methods=["PUT", "PATCH", "DELETE"])
 def user_item(user_id):
     user = next((u for u in users if u["id"] == user_id), None)
     if user is None:
@@ -47,11 +47,15 @@ def user_item(user_id):
         user["last_name"] = request.form.get("last_name")
         user["graduation_year"] = request.form.get("graduation_year")
         user["email"] = request.form.get("email")
-    else:
+        return jsonify(user)
+
+    if request.method == "PATCH":
         for field in ("first_name", "last_name", "graduation_year", "email"):
             if field in request.form:
                 user[field] = request.form.get(field)
+        return jsonify(user)
 
+    users.remove(user)
     return jsonify(user)
 
 
