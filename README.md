@@ -50,12 +50,16 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
-| POST   | `/api/users`                  | Creates an alumni record from a JSON body (`first_name`, `last_name`, `graduation_year`, `email`) and returns it as JSON |
+| POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it as JSON |
 
 `POST /api/users` requires a request body, so it can't be tested from a browser address bar — use Postman (or curl) instead:
 
 ```bash
 curl -X POST http://localhost:5000/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"first_name": "Fatih", "last_name": "Sungur", "graduation_year": 2026, "email": "fatih@example.com"}'
+  -d "first_name=Fatih" \
+  -d "last_name=Sungur" \
+  -d "graduation_year=2026" \
+  -d "email=fatih@example.com"
 ```
+
+In Postman: set the method to POST, the URL to `http://localhost:5000/api/users`, go to the **Body** tab, select **form-data**, and add the four fields as key/value pairs.

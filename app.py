@@ -15,12 +15,11 @@ def health():
 
 @app.route("/api/users", methods=["POST"])
 def create_user():
-    data = request.get_json()
     return jsonify(
-        first_name=data.get("first_name"),
-        last_name=data.get("last_name"),
-        graduation_year=data.get("graduation_year"),
-        email=data.get("email"),
+        first_name=request.form.get("first_name"),
+        last_name=request.form.get("last_name"),
+        graduation_year=request.form.get("graduation_year"),
+        email=request.form.get("email"),
     ), 201
 
 
