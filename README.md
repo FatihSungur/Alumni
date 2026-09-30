@@ -49,3 +49,4 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/hello/<name>`               | Returns `Hello, <name>!`              |
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
+| GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
