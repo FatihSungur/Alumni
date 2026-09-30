@@ -13,6 +13,19 @@ def health():
     return jsonify(status="ok")
 
 
+@app.route("/api/swagger")
+def swagger():
+    endpoints = []
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint == "static":
+            continue
+        methods = sorted(rule.methods - {"HEAD", "OPTIONS"})
+        endpoints.append({"path": str(rule), "methods": methods})
+
+    endpoints.sort(key=lambda endpoint: endpoint["path"])
+    return jsonify(endpoints)
+
+
 users = []
 next_id = 1
 
