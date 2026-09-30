@@ -13,31 +13,14 @@ def health():
     return jsonify(status="ok")
 
 
-ALUMNI = [
-    {
-        "first_name": "Fatih",
-        "last_name": "Sungur",
-        "graduation_year": 2026,
-        "email": "fatih.sungur@example.com",
-    },
-    {
-        "first_name": "Emre",
-        "last_name": "Yildiz",
-        "graduation_year": 2025,
-        "email": "emre.yildiz@example.com",
-    },
-    {
-        "first_name": "Ayse",
-        "last_name": "Kaya",
-        "graduation_year": 2024,
-        "email": "ayse.kaya@example.com",
-    },
-]
-
-
-@app.route("/api/users")
-def users():
-    return jsonify(ALUMNI)
+@app.route("/api/users/<first_name>/<last_name>/<int:graduation_year>/<email>")
+def create_user(first_name, last_name, graduation_year, email):
+    return jsonify(
+        first_name=first_name,
+        last_name=last_name,
+        graduation_year=graduation_year,
+        email=email,
+    )
 
 
 @app.route("/about")
