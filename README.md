@@ -50,4 +50,12 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
-| GET    | `/api/users/<first_name>/<last_name>/<graduation_year>/<email>` | Returns the given alumni record as JSON |
+| POST   | `/api/users`                  | Creates an alumni record from a JSON body (`first_name`, `last_name`, `graduation_year`, `email`) and returns it as JSON |
+
+`POST /api/users` requires a request body, so it can't be tested from a browser address bar — use Postman (or curl) instead:
+
+```bash
+curl -X POST http://localhost:5000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"first_name": "Fatih", "last_name": "Sungur", "graduation_year": 2026, "email": "fatih@example.com"}'
+```

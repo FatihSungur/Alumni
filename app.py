@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 
@@ -13,14 +13,15 @@ def health():
     return jsonify(status="ok")
 
 
-@app.route("/api/users/<first_name>/<last_name>/<int:graduation_year>/<email>")
-def create_user(first_name, last_name, graduation_year, email):
+@app.route("/api/users", methods=["POST"])
+def create_user():
+    data = request.get_json()
     return jsonify(
-        first_name=first_name,
-        last_name=last_name,
-        graduation_year=graduation_year,
-        email=email,
-    )
+        first_name=data.get("first_name"),
+        last_name=data.get("last_name"),
+        graduation_year=data.get("graduation_year"),
+        email=data.get("email"),
+    ), 201
 
 
 @app.route("/about")
