@@ -52,8 +52,10 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
 | POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it as JSON |
 | GET    | `/api/users`                  | Returns all alumni records created so far, as a JSON list |
+| PUT    | `/api/users`                  | Replaces all fields of the record matching the given `email` (form data) and returns it as JSON |
+| PATCH  | `/api/users`                  | Updates only the given fields of the record matching the given `email` (form data) and returns it as JSON |
 
-`POST /api/users` requires a request body, so it can't be tested from a browser address bar — use Postman (or curl) instead:
+`POST`, `PUT` and `PATCH` on `/api/users` require a request body, so they can't be tested from a browser address bar — use Postman (or curl) instead:
 
 ```bash
 curl -X POST http://localhost:5000/api/users \
@@ -63,6 +65,6 @@ curl -X POST http://localhost:5000/api/users \
   -d "email=fatih@example.com"
 ```
 
-In Postman: set the method to POST, the URL to `http://localhost:5000/api/users`, go to the **Body** tab, select **form-data**, and add the four fields as key/value pairs.
+In Postman: set the method (POST, PUT or PATCH), the URL to `http://localhost:5000/api/users`, go to the **Body** tab, select **form-data**, and add the relevant fields as key/value pairs. For PUT and PATCH, `email` identifies which record to update.
 
 Afterwards, visit `http://localhost:5000/api/users` in a browser (GET) to see the list of alumni records created so far. Records are kept in memory only, so they reset when the server restarts.

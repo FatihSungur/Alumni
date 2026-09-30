@@ -16,7 +16,7 @@ def health():
 users = []
 
 
-@app.route("/api/users", methods=["GET", "POST"])
+@app.route("/api/users", methods=["GET", "POST", "PUT", "PATCH"])
 def users_collection():
     if request.method == "POST":
         user = {
@@ -27,6 +27,23 @@ def users_collection():
         }
         users.append(user)
         return jsonify(user), 201
+
+    if request.method in ("PUT", "PATCH"):
+        email = request.form.get("email")
+        user = next((u for u in users if u["email"] == email), None)
+        if user is None:
+            return jsonify(error="User not found"), 404
+
+        if request.method == "PUT":
+            user["first_name"] = request.form.get("first_name")
+            user["last_name"] = request.form.get("last_name")
+            user["graduation_year"] = request.form.get("graduation_year")
+        else:
+            for field in ("first_name", "last_name", "graduation_year"):
+                if field in request.form:
+                    user[field] = request.form.get(field)
+
+        return jsonify(user)
 
     return jsonify(users)
 
