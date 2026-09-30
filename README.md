@@ -50,10 +50,10 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
-| POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it as JSON |
+| POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it (with an auto-generated `id`) as JSON |
 | GET    | `/api/users`                  | Returns all alumni records created so far, as a JSON list |
-| PUT    | `/api/users`                  | Replaces all fields of the record matching the given `email` (form data) and returns it as JSON |
-| PATCH  | `/api/users`                  | Updates only the given fields of the record matching the given `email` (form data) and returns it as JSON |
+| PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
+| PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
 
 `POST`, `PUT` and `PATCH` on `/api/users` require a request body, so they can't be tested from a browser address bar — use Postman (or curl) instead:
 
@@ -65,6 +65,6 @@ curl -X POST http://localhost:5000/api/users \
   -d "email=fatih@example.com"
 ```
 
-In Postman: set the method (POST, PUT or PATCH), the URL to `http://localhost:5000/api/users`, go to the **Body** tab, select **form-data**, and add the relevant fields as key/value pairs. For PUT and PATCH, `email` identifies which record to update.
+In Postman: for POST, set the URL to `http://localhost:5000/api/users`; for PUT/PATCH, set it to `http://localhost:5000/api/users/<id>` (the `id` from the POST response). Go to the **Body** tab, select **form-data**, and add the relevant fields as key/value pairs.
 
 Afterwards, visit `http://localhost:5000/api/users` in a browser (GET) to see the list of alumni records created so far. Records are kept in memory only, so they reset when the server restarts.

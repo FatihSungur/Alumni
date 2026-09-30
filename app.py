@@ -14,38 +14,45 @@ def health():
 
 
 users = []
+next_id = 1
 
 
-@app.route("/api/users", methods=["GET", "POST", "PUT", "PATCH"])
+@app.route("/api/users", methods=["GET", "POST"])
 def users_collection():
+    global next_id
+
     if request.method == "POST":
         user = {
+            "id": next_id,
             "first_name": request.form.get("first_name"),
             "last_name": request.form.get("last_name"),
             "graduation_year": request.form.get("graduation_year"),
             "email": request.form.get("email"),
         }
+        next_id += 1
         users.append(user)
         return jsonify(user), 201
 
-    if request.method in ("PUT", "PATCH"):
-        email = request.form.get("email")
-        user = next((u for u in users if u["email"] == email), None)
-        if user is None:
-            return jsonify(error="User not found"), 404
-
-        if request.method == "PUT":
-            user["first_name"] = request.form.get("first_name")
-            user["last_name"] = request.form.get("last_name")
-            user["graduation_year"] = request.form.get("graduation_year")
-        else:
-            for field in ("first_name", "last_name", "graduation_year"):
-                if field in request.form:
-                    user[field] = request.form.get(field)
-
-        return jsonify(user)
-
     return jsonify(users)
+
+
+@app.route("/api/users/<int:user_id>", methods=["PUT", "PATCH"])
+def user_item(user_id):
+    user = next((u for u in users if u["id"] == user_id), None)
+    if user is None:
+        return jsonify(error="User not found"), 404
+
+    if request.method == "PUT":
+        user["first_name"] = request.form.get("first_name")
+        user["last_name"] = request.form.get("last_name")
+        user["graduation_year"] = request.form.get("graduation_year")
+        user["email"] = request.form.get("email")
+    else:
+        for field in ("first_name", "last_name", "graduation_year", "email"):
+            if field in request.form:
+                user[field] = request.form.get(field)
+
+    return jsonify(user)
 
 
 @app.route("/about")
