@@ -55,9 +55,9 @@ The app will be available at `http://localhost:5000`.
 | PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
 | PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
 | DELETE | `/api/users/<id>`             | Deletes the record with the given `id` and returns the deleted record as JSON |
-| GET    | `/api/swagger`                | Renders a colored API documentation page listing every registered route and its allowed methods |
+| GET    | `/api/swagger`                | Interactive Swagger UI (powered by [flasgger](https://github.com/flasgger/flasgger)) listing every documented route |
 
-> **Project rule:** `/api/swagger` is generated dynamically from Flask's own route table, so it always reflects the current endpoints automatically — there is nothing to update by hand when a new endpoint is added. Just visit `/api/swagger` in a browser after adding a route to confirm it picked it up.
+> **Project rule:** `/api/swagger` is generated dynamically from the docstrings on each route, so it always reflects the current endpoints automatically. Whenever a new endpoint is added, give it a short YAML docstring (see the existing routes for examples) so it shows up in Swagger — then just visit `/api/swagger` in a browser to confirm it picked it up.
 
 `POST`, `PUT`, `PATCH` and `DELETE` on `/api/users` can't be tested from a browser address bar (it only sends GET) — use Postman (or curl) instead:
 
