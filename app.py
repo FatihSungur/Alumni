@@ -23,7 +23,7 @@ def swagger():
         endpoints.append({"path": str(rule), "methods": methods})
 
     endpoints.sort(key=lambda endpoint: endpoint["path"])
-    return jsonify(endpoints)
+    return render_template("swagger.html", endpoints=endpoints)
 
 
 users = []
