@@ -51,6 +51,7 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/about`                      | Temporary about page                  |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
 | POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it as JSON |
+| GET    | `/api/users`                  | Returns all alumni records created so far, as a JSON list |
 
 `POST /api/users` requires a request body, so it can't be tested from a browser address bar — use Postman (or curl) instead:
 
@@ -63,3 +64,5 @@ curl -X POST http://localhost:5000/api/users \
 ```
 
 In Postman: set the method to POST, the URL to `http://localhost:5000/api/users`, go to the **Body** tab, select **form-data**, and add the four fields as key/value pairs.
+
+Afterwards, visit `http://localhost:5000/api/users` in a browser (GET) to see the list of alumni records created so far. Records are kept in memory only, so they reset when the server restarts.

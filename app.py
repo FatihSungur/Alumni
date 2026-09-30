@@ -13,14 +13,22 @@ def health():
     return jsonify(status="ok")
 
 
-@app.route("/api/users", methods=["POST"])
-def create_user():
-    return jsonify(
-        first_name=request.form.get("first_name"),
-        last_name=request.form.get("last_name"),
-        graduation_year=request.form.get("graduation_year"),
-        email=request.form.get("email"),
-    ), 201
+users = []
+
+
+@app.route("/api/users", methods=["GET", "POST"])
+def users_collection():
+    if request.method == "POST":
+        user = {
+            "first_name": request.form.get("first_name"),
+            "last_name": request.form.get("last_name"),
+            "graduation_year": request.form.get("graduation_year"),
+            "email": request.form.get("email"),
+        }
+        users.append(user)
+        return jsonify(user), 201
+
+    return jsonify(users)
 
 
 @app.route("/about")
