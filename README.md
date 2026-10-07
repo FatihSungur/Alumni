@@ -16,6 +16,37 @@ A web platform built for the Web Programming course to connect graduates with th
 - **Framework:** Flask
 - **Containerization:** Docker & Docker Compose
 
+## 🏗️ Project Structure (MVC Architecture)
+
+The app follows the **Model-View-Controller (MVC)** pattern. Each concern lives in its own folder so the codebase stays organized as it grows:
+
+```
+Alumni-Web-Programming/
+├── app.py                        # Entry point: creates the Flask app, wires up Swagger, registers controllers
+├── models/
+│   ├── __init__.py
+│   └── user.py                   # Model: User data + CRUD logic (in-memory, no database yet)
+├── controllers/
+│   ├── __init__.py
+│   ├── user_controller.py        # Controller: HTML pages for /users (list, create, edit, delete)
+│   └── api_user_controller.py    # Controller: JSON API for /api/users (same data, machine-readable)
+├── templates/                    # View: HTML pages rendered by the controllers (Jinja2 templates)
+│   ├── index.html
+│   ├── about.html
+│   └── users/
+│       ├── list.html             # Lists all users + a form to create a new one
+│       └── edit.html             # Pre-filled form to edit a single user
+├── requirements.txt               # Python dependencies
+├── Dockerfile                     # Container image definition
+└── docker-compose.yml             # Local orchestration (build + run)
+```
+
+**How the layers map to MVC:**
+
+- **Model** (`models/`) — owns the data and the rules for changing it (create, read, update, delete). Knows nothing about HTTP, HTML, or JSON.
+- **View** (`templates/`) — the HTML the user actually sees. Knows nothing about where the data came from, it just renders whatever it's given.
+- **Controller** (`controllers/`) — the bridge. Receives the HTTP request, asks the Model for data, hands that data to a View (or turns it straight into JSON), and returns the result. Two controllers exist for `User` on purpose: `UserController` serves human users through HTML pages, while `ApiUserController` serves other programs through JSON — both talk to the exact same `User` model underneath.
+
 ## Prerequisites
 
 - Docker and Docker Compose installed (recommended way to run this project)
@@ -49,6 +80,11 @@ The app will be available at `http://localhost:5000`.
 | GET    | `/hello/<name>`               | Returns `Hello, <name>!`              |
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
+| GET    | `/users`                      | HTML page listing alumni, with a form to create a new one (UserController) |
+| POST   | `/users`                      | Creates an alumni record from the HTML form and redirects back to the list |
+| GET    | `/users/<id>/edit`            | HTML form pre-filled with the record's current data |
+| POST   | `/users/<id>/edit`             | Saves the edited record and redirects back to the list |
+| POST   | `/users/<id>/delete`           | Deletes the record and redirects back to the list |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
 | POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it (with an auto-generated `id`) as JSON |
 | GET    | `/api/users`                  | Returns all alumni records created so far, as a JSON list |
