@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alumni - Users</title>
+</head>
+<body>
+    <h1>Alumni Users</h1>
+
+    <table border="1" cellpadding="6">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Graduation Year</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.first_name }}</td>
+                <td>{{ user.last_name }}</td>
+                <td>{{ user.graduation_year }}</td>
+                <td>{{ user.email }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">No users yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Add a new user</h2>
+    <form method="POST" action="/users">
+        <label>First name: <input type="text" name="first_name"></label><br>
+        <label>Last name: <input type="text" name="last_name"></label><br>
+        <label>Graduation year: <input type="text" name="graduation_year"></label><br>
+        <label>Email: <input type="text" name="email"></label><br>
+        <button type="submit">Create</button>
+    </form>
+</body>
+</html>
