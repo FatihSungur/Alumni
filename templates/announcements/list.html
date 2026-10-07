@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alumni - Announcements</title>
+</head>
+<body>
+    <h1>Announcements</h1>
+
+    <table border="1" cellpadding="6">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Content</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for announcement in announcements %}
+            <tr>
+                <td>{{ announcement.id }}</td>
+                <td>{{ announcement.title }}</td>
+                <td>{{ announcement.content }}</td>
+                <td>{{ announcement.date }}</td>
+                <td>
+                    <a href="/announcements/{{ announcement.id }}/edit">Edit</a>
+                    <form method="POST" action="/announcements/{{ announcement.id }}/delete" style="display:inline">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">No announcements yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Add a new announcement</h2>
+    <form method="POST" action="/announcements">
+        <label>Title: <input type="text" name="title"></label><br>
+        <label>Content: <input type="text" name="content"></label><br>
+        <label>Date: <input type="text" name="date"></label><br>
+        <button type="submit">Create</button>
+    </form>
+</body>
+</html>

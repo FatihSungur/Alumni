@@ -1,6 +1,8 @@
 from flasgger import Swagger
 from flask import Flask, jsonify, render_template
 
+from controllers.announcement_controller import announcement_bp
+from controllers.api_announcement_controller import api_announcement_bp
 from controllers.api_user_controller import api_user_bp
 from controllers.user_controller import user_bp
 
@@ -27,6 +29,8 @@ Swagger(app, config={
 
 app.register_blueprint(api_user_bp)
 app.register_blueprint(user_bp)
+app.register_blueprint(api_announcement_bp)
+app.register_blueprint(announcement_bp)
 
 
 @app.route("/")

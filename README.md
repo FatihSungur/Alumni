@@ -22,30 +22,36 @@ The app follows the **Model-View-Controller (MVC)** pattern. Each concern lives 
 
 ```
 Alumni-Web-Programming/
-├── app.py                        # Entry point: creates the Flask app, wires up Swagger, registers controllers
+├── app.py                              # Entry point: creates the Flask app, wires up Swagger, registers controllers
 ├── models/
 │   ├── __init__.py
-│   └── user.py                   # Model: User data + CRUD logic (in-memory, no database yet)
+│   ├── user.py                         # Model: User data + CRUD logic (in-memory, no database yet)
+│   └── announcement.py                 # Model: Announcement data + CRUD logic (in-memory, no database yet)
 ├── controllers/
 │   ├── __init__.py
-│   ├── user_controller.py        # Controller: HTML pages for /users (list, create, edit, delete)
-│   └── api_user_controller.py    # Controller: JSON API for /api/users (same data, machine-readable)
-├── templates/                    # View: HTML pages rendered by the controllers (Jinja2 templates)
+│   ├── user_controller.py              # Controller: HTML pages for /users (list, create, edit, delete)
+│   ├── api_user_controller.py          # Controller: JSON API for /api/users (same data, machine-readable)
+│   ├── announcement_controller.py      # Controller: HTML pages for /announcements (list, create, edit, delete)
+│   └── api_announcement_controller.py  # Controller: JSON API for /api/announcements
+├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
 │   ├── index.html
 │   ├── about.html
-│   └── users/
-│       ├── list.html             # Lists all users + a form to create a new one
-│       └── edit.html             # Pre-filled form to edit a single user
-├── requirements.txt               # Python dependencies
-├── Dockerfile                     # Container image definition
-└── docker-compose.yml             # Local orchestration (build + run)
+│   ├── users/
+│   │   ├── list.html                   # Lists all users + a form to create a new one
+│   │   └── edit.html                   # Pre-filled form to edit a single user
+│   └── announcements/
+│       ├── list.html                   # Lists all announcements + a form to create a new one
+│       └── edit.html                   # Pre-filled form to edit a single announcement
+├── requirements.txt                     # Python dependencies
+├── Dockerfile                           # Container image definition
+└── docker-compose.yml                   # Local orchestration (build + run)
 ```
 
 **How the layers map to MVC:**
 
 - **Model** (`models/`) — owns the data and the rules for changing it (create, read, update, delete). Knows nothing about HTTP, HTML, or JSON.
 - **View** (`templates/`) — the HTML the user actually sees. Knows nothing about where the data came from, it just renders whatever it's given.
-- **Controller** (`controllers/`) — the bridge. Receives the HTTP request, asks the Model for data, hands that data to a View (or turns it straight into JSON), and returns the result. Two controllers exist for `User` on purpose: `UserController` serves human users through HTML pages, while `ApiUserController` serves other programs through JSON — both talk to the exact same `User` model underneath.
+- **Controller** (`controllers/`) — the bridge. Receives the HTTP request, asks the Model for data, hands that data to a View (or turns it straight into JSON), and returns the result. Each resource (`User`, `Announcement`) has two controllers on purpose: one serves human users through HTML pages (`UserController`, `AnnouncementController`), the other serves other programs through JSON (`ApiUserController`, `ApiAnnouncementController`) — both talk to the exact same Model underneath.
 
 ## Prerequisites
 
@@ -91,6 +97,16 @@ The app will be available at `http://localhost:5000`.
 | PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
 | PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
 | DELETE | `/api/users/<id>`             | Deletes the record with the given `id` and returns the deleted record as JSON |
+| GET    | `/announcements`              | HTML page listing announcements, with a form to create a new one (AnnouncementController) |
+| POST   | `/announcements`              | Creates an announcement from the HTML form and redirects back to the list |
+| GET    | `/announcements/<id>/edit`    | HTML form pre-filled with the announcement's current data |
+| POST   | `/announcements/<id>/edit`    | Saves the edited announcement and redirects back to the list |
+| POST   | `/announcements/<id>/delete`  | Deletes the announcement and redirects back to the list |
+| POST   | `/api/announcements`          | Creates an announcement from form data (`title`, `content`, `date`) and returns it (with an auto-generated `id`) as JSON |
+| GET    | `/api/announcements`          | Returns all announcements created so far, as a JSON list |
+| PUT    | `/api/announcements/<id>`     | Replaces all fields of the announcement with the given `id` and returns it as JSON |
+| PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
+| DELETE | `/api/announcements/<id>`     | Deletes the announcement with the given `id` and returns the deleted record as JSON |
 | GET    | `/api/swagger`                | Interactive Swagger UI (powered by [flasgger](https://github.com/flasgger/flasgger)) listing every documented route |
 
 > **Project rule:** `/api/swagger` is generated dynamically from the docstrings on each route, so it always reflects the current endpoints automatically. Whenever a new endpoint is added, give it a short YAML docstring (see the existing routes for examples) so it shows up in Swagger — then just visit `/api/swagger` in a browser to confirm it picked it up.
