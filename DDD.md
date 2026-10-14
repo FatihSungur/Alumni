@@ -65,3 +65,7 @@ When the database is actually introduced:
 - Replace the `_users` / `_announcements` in-memory lists with real queries (e.g. via SQLAlchemy or `psycopg2`).
 - Keep the `User.create/get_all/get_by_id/update/patch/delete` and `Announcement` equivalents as the public interface — controllers should not need to change, only what happens inside the Model methods.
 - `graduation_year` and `date` are currently plain strings coming from HTML form fields; they should be validated/converted to `INTEGER` and `DATE` respectively before being inserted into PostgreSQL.
+
+## Infrastructure Already in Place
+
+`docker-compose.yml` already defines a `db` service (`postgres:16`, with `POSTGRES_USER/PASSWORD/DB` all set to `alumni`, data persisted in a named volume) and passes the `web` service a `DATABASE_URL` environment variable pointing to it. The database container runs and accepts connections, but `app.py` does not read `DATABASE_URL` or connect to it yet — that wiring is the next step once the models above are implemented with real queries.
