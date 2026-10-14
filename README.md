@@ -8,13 +8,13 @@ A web platform built for the Web Programming course to connect graduates with th
 - **Greeting & Utility Endpoints:** Early API building blocks (`/hello`, `/sum`, etc.) used to learn and validate the routing layer.
 - **Static Pages:** Home and About pages describing the project.
 - **Containerized Deployment:** Docker & Docker Compose setup so the app runs identically on any machine.
-- **Future Milestones:** Alumni profile management, search/filtering, and a persistent **PostgreSQL** database layer will be added in upcoming weeks.
+- **Future Milestones:** Alumni profile management and search/filtering will be added in upcoming weeks.
 
 ## Tech Stack
 
 - **Language:** Python 3.12
 - **Framework:** Flask
-- **Database:** PostgreSQL (planned — not wired up yet; see [DDD.md](./DDD.md) for the planned schema)
+- **Database:** PostgreSQL — `users` and `announcements` are fully backed by it (see [DDD.md](./DDD.md) for the schema)
 - **Containerization:** Docker & Docker Compose
 
 ## 🏗️ Project Structure (MVC Architecture)
@@ -26,8 +26,9 @@ Alumni-Web-Programming/
 ├── app.py                              # Entry point: creates the Flask app, wires up Swagger, registers controllers
 ├── models/
 │   ├── __init__.py
-│   ├── user.py                         # Model: User data + CRUD logic (in-memory, no database yet)
-│   └── announcement.py                 # Model: Announcement data + CRUD logic (in-memory, no database yet)
+│   ├── db.py                            # Shared PostgreSQL connection helper
+│   ├── user.py                         # Model: User CRUD, backed by the `users` table
+│   └── announcement.py                 # Model: Announcement CRUD, backed by the `announcements` table
 ├── controllers/
 │   ├── __init__.py
 │   ├── user_controller.py              # Controller: HTML pages for /users (list, create, edit, delete)
@@ -80,7 +81,7 @@ Then run:
 docker compose up --build
 ```
 
-This starts two containers: the Flask app (`web`) and a PostgreSQL database (`db`, not wired into the app yet — see [DDD.md](./DDD.md)). The app will be available at `http://localhost:5000`. Stop everything with `Ctrl+C`, then `docker compose down`.
+This starts two containers: the Flask app (`web`) and a PostgreSQL database (`db`). The app reads and writes directly to PostgreSQL for both `User` and `Announcement` — data now survives restarts. The app will be available at `http://localhost:5000`. Stop everything with `Ctrl+C`, then `docker compose down`.
 
 ### Seeding sample data into the database
 
@@ -90,20 +91,18 @@ Once the containers are running, you can fill the database with realistic fake d
 docker compose exec web python seed.py
 ```
 
-Note: this writes directly to PostgreSQL via `psycopg2`. It does **not** show up on `/users` or `/api/users` yet, since the app itself still reads from in-memory data, not the database. Check the seeded rows directly instead:
-
-```bash
-docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "SELECT * FROM users;"
-```
+This writes directly to PostgreSQL via `psycopg2`, using the `UserFactory`/`AnnouncementFactory` to generate the fake data. Since the app is now wired to the same database, the seeded rows show up immediately on `/users`, `/announcements`, and their `/api/...` equivalents.
 
 ## Alternative: Run Locally with Python
+
+Since the app now requires PostgreSQL (`DATABASE_URL`), this only works if you have a local Postgres instance running and your `.env` points to it:
 
 ```bash
 pip install -r requirements.txt
 python app.py
 ```
 
-The app will be available at `http://localhost:5000`.
+The app will be available at `http://localhost:5000`. In practice, Docker Compose above is much simpler since it provisions the database for you.
 
 ## API Endpoints
 
@@ -151,4 +150,4 @@ curl -X POST http://localhost:5000/api/users \
 
 In Postman: for POST, set the URL to `http://localhost:5000/api/users`; for PUT/PATCH/DELETE, set it to `http://localhost:5000/api/users/<id>` (the `id` from the POST response). Go to the **Body** tab, select **form-data**, and add the relevant fields as key/value pairs (DELETE needs no body).
 
-Afterwards, visit `http://localhost:5000/api/users` in a browser (GET) to see the list of alumni records created so far. Records are kept in memory only, so they reset when the server restarts.
+Afterwards, visit `http://localhost:5000/api/users` in a browser (GET) to see the list of alumni records created so far. Records are now stored in PostgreSQL, so they persist across restarts (`docker compose down` / `up`).

@@ -38,9 +38,9 @@ def users_collection():
             request.form.get("graduation_year"),
             request.form.get("email"),
         )
-        return jsonify(user.to_dict()), 201
+        return jsonify(user), 201
 
-    return jsonify([user.to_dict() for user in User.get_all()])
+    return jsonify(User.get_all())
 
 
 @api_user_bp.route("/<int:user_id>", methods=["PUT", "PATCH", "DELETE"])
@@ -78,24 +78,24 @@ def user_item(user_id):
         return jsonify(error="User not found"), 404
 
     if request.method == "PUT":
-        User.update(
+        updated_user = User.update(
             user_id,
             request.form.get("first_name"),
             request.form.get("last_name"),
             request.form.get("graduation_year"),
             request.form.get("email"),
         )
-        return jsonify(user.to_dict())
+        return jsonify(updated_user)
 
     if request.method == "PATCH":
-        User.patch(
+        updated_user = User.patch(
             user_id,
             first_name=request.form.get("first_name"),
             last_name=request.form.get("last_name"),
             graduation_year=request.form.get("graduation_year"),
             email=request.form.get("email"),
         )
-        return jsonify(user.to_dict())
+        return jsonify(updated_user)
 
-    User.delete(user_id)
-    return jsonify(user.to_dict())
+    deleted_user = User.delete(user_id)
+    return jsonify(deleted_user)

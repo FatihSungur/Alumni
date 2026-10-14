@@ -36,9 +36,9 @@ def announcements_collection():
             request.form.get("content"),
             request.form.get("date"),
         )
-        return jsonify(announcement.to_dict()), 201
+        return jsonify(announcement), 201
 
-    return jsonify([a.to_dict() for a in Announcement.get_all()])
+    return jsonify(Announcement.get_all())
 
 
 @api_announcement_bp.route("/<int:announcement_id>", methods=["PUT", "PATCH", "DELETE"])
@@ -73,22 +73,22 @@ def announcement_item(announcement_id):
         return jsonify(error="Announcement not found"), 404
 
     if request.method == "PUT":
-        Announcement.update(
+        updated_announcement = Announcement.update(
             announcement_id,
             request.form.get("title"),
             request.form.get("content"),
             request.form.get("date"),
         )
-        return jsonify(announcement.to_dict())
+        return jsonify(updated_announcement)
 
     if request.method == "PATCH":
-        Announcement.patch(
+        updated_announcement = Announcement.patch(
             announcement_id,
             title=request.form.get("title"),
             content=request.form.get("content"),
             date=request.form.get("date"),
         )
-        return jsonify(announcement.to_dict())
+        return jsonify(updated_announcement)
 
-    Announcement.delete(announcement_id)
-    return jsonify(announcement.to_dict())
+    deleted_announcement = Announcement.delete(announcement_id)
+    return jsonify(deleted_announcement)

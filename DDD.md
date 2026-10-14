@@ -1,12 +1,12 @@
 # Database Design Document (DDD)
 
-This document describes the **planned** PostgreSQL schema for this project. The application does **not** use a database yet — all data currently lives in memory (see `models/user.py` and `models/announcement.py`) and is lost whenever the process restarts. This document exists to plan ahead: once a real database is wired up, the tables below are the minimum needed to cover what the app already does.
+This document describes the PostgreSQL schema used by this project. The application is now connected to PostgreSQL — `models/user.py` and `models/announcement.py` read and write directly to the tables below via `models/db.py`. Data persists across restarts (`docker compose down` / `up`).
 
 ## Status
 
-- **Database engine:** PostgreSQL (planned, not yet connected)
-- **Current storage:** In-memory Python lists, reset on every restart
-- **Scope:** Only the two entities the app already manages — `users` and `announcements`
+- **Database engine:** PostgreSQL — connected and in use
+- **Current storage:** The `users` and `announcements` tables, queried directly via `psycopg2` (no ORM)
+- **Scope:** Only the two entities the app manages — `users` and `announcements`
 
 ## Schema Overview
 
@@ -21,7 +21,7 @@ Backs the `User` model (`models/user.py`). Represents one alumni record.
 | `id`              | `SERIAL`       | `PRIMARY KEY`                | Auto-incrementing, matches today's `_next_id` behavior |
 | `first_name`      | `VARCHAR(100)` | `NOT NULL`                   |                                           |
 | `last_name`       | `VARCHAR(100)` | `NOT NULL`                   |                                           |
-| `graduation_year` | `INTEGER`      | `NOT NULL`                   | Stored as text today; should become a real integer in the database |
+| `graduation_year` | `INTEGER`      | `NOT NULL`                   |                                           |
 | `email`           | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`         | Two alumni records should not share an email |
 
 ```sql
@@ -43,7 +43,7 @@ Backs the `Announcement` model (`models/announcement.py`). Represents one announ
 | `id`      | `SERIAL`       | `PRIMARY KEY`     | Auto-incrementing                    |
 | `title`   | `VARCHAR(200)` | `NOT NULL`        |                                       |
 | `content` | `TEXT`         | `NOT NULL`        | Longer free text, unlike title       |
-| `date`    | `DATE`         | `NOT NULL`        | Stored as text today; should become a real `DATE` in the database |
+| `date`    | `DATE`         | `NOT NULL`        |                                       |
 
 ```sql
 CREATE TABLE announcements (
@@ -56,19 +56,15 @@ CREATE TABLE announcements (
 
 ## Relationships
 
-There are currently no relationships between `users` and `announcements` — they are independent entities, matching how the two models work today (each has its own standalone in-memory list). A future iteration could add a `created_by` foreign key on `announcements` pointing to `users.id` if announcements need an author, but that is out of scope for now.
+There are currently no relationships between `users` and `announcements` — they are independent entities, matching how the two models work today. A future iteration could add a `created_by` foreign key on `announcements` pointing to `users.id` if announcements need an author, but that is out of scope for now.
 
-## Migration Notes (for later)
+## App ↔ Database Wiring
 
-When the database is actually introduced:
+`models/db.py` exposes `get_connection()`, which opens a `psycopg2` connection using the `DATABASE_URL` environment variable (set via `.env` / `docker-compose.yml`) and returns rows as plain dictionaries (`RealDictCursor`), so controllers and templates can use `user["first_name"]` / `user.first_name` interchangeably.
 
-- Replace the `_users` / `_announcements` in-memory lists with real queries (e.g. via SQLAlchemy or `psycopg2`).
-- Keep the `User.create/get_all/get_by_id/update/patch/delete` and `Announcement` equivalents as the public interface — controllers should not need to change, only what happens inside the Model methods.
-- `graduation_year` and `date` are currently plain strings coming from HTML form fields; they should be validated/converted to `INTEGER` and `DATE` respectively before being inserted into PostgreSQL.
+`models/user.py` and `models/announcement.py` each open a new connection per method call (`create`, `get_all`, `get_by_id`, `update`, `patch`, `delete`), run the relevant SQL, `commit()` after any write, then close the connection. Controllers were **not changed** — they still call `User.create(...)`, `User.get_all()`, etc. exactly as before; only what happens inside those methods changed, from an in-memory list to real SQL. This is the MVC boundary doing its job: swapping storage didn't require touching a single controller or template.
 
-## Infrastructure Already in Place
-
-`docker-compose.yml` already defines a `db` service (`postgres:16`, with `POSTGRES_USER/PASSWORD/DB` all set to `alumni`, data persisted in a named volume) and passes the `web` service a `DATABASE_URL` environment variable pointing to it. The database container runs and accepts connections, but `app.py` does not read `DATABASE_URL` or connect to it yet — that wiring is the next step once the models above are implemented with real queries.
+Verified behavior: creating a record, running `docker compose down` then `docker compose up`, and the record is still there — the "forgetting test" from before no longer applies to `users`/`announcements`.
 
 ## Migrations
 
@@ -102,4 +98,4 @@ docker compose exec web python seed.py
 
 This inserts 10 fake users and 5 fake announcements directly into the `users` and `announcements` tables. It connects using the same `DATABASE_URL` the `web` container already has from `.env` — no extra configuration needed.
 
-**This only touches the database.** The running Flask app still reads from the in-memory `User`/`Announcement` models, so seeded rows will *not* appear on `/users` or `/api/users` until the app itself is connected to PostgreSQL (see Migration Notes above).
+Since the app is now wired to the same database (see App ↔ Database Wiring above), seeded rows appear immediately on `/users`, `/announcements`, and their `/api/...` equivalents — no restart needed.
