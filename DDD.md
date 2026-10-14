@@ -86,3 +86,20 @@ Verify the tables exist with:
 ```bash
 docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "\dt"
 ```
+
+## Factory & Seed
+
+Two separate concepts, often confused:
+
+- **Factory** (`factories/user_factory.py`, `factories/announcement_factory.py`) — a class whose only job is to *generate* one fake-but-realistic record (via the [Faker](https://faker.readthedocs.io/) library). It does not touch the database at all; calling `UserFactory.create()` just returns a Python dict.
+- **Seed** (`seed.py`) — a script that calls the factories in a loop and actually `INSERT`s the results into PostgreSQL via `psycopg2`, then `commit()`s the transaction.
+
+Run it (containers must already be up):
+
+```bash
+docker compose exec web python seed.py
+```
+
+This inserts 10 fake users and 5 fake announcements directly into the `users` and `announcements` tables. It connects using the same `DATABASE_URL` the `web` container already has from `.env` — no extra configuration needed.
+
+**This only touches the database.** The running Flask app still reads from the in-memory `User`/`Announcement` models, so seeded rows will *not* appear on `/users` or `/api/users` until the app itself is connected to PostgreSQL (see Migration Notes above).

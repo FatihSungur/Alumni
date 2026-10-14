@@ -45,6 +45,11 @@ Alumni-Web-Programming/
 │       └── edit.html                   # Pre-filled form to edit a single announcement
 ├── migrations/
 │   └── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
+├── factories/
+│   ├── __init__.py
+│   ├── user_factory.py                 # Generates realistic fake user data (via Faker)
+│   └── announcement_factory.py         # Generates realistic fake announcement data (via Faker)
+├── seed.py                              # Uses the factories to insert sample rows directly into PostgreSQL
 ├── requirements.txt                     # Python dependencies
 ├── Dockerfile                           # Container image definition
 └── docker-compose.yml                   # Local orchestration (build + run)
@@ -76,6 +81,20 @@ docker compose up --build
 ```
 
 This starts two containers: the Flask app (`web`) and a PostgreSQL database (`db`, not wired into the app yet — see [DDD.md](./DDD.md)). The app will be available at `http://localhost:5000`. Stop everything with `Ctrl+C`, then `docker compose down`.
+
+### Seeding sample data into the database
+
+Once the containers are running, you can fill the database with realistic fake data (10 users, 5 announcements) using the Factory + Seed scripts:
+
+```bash
+docker compose exec web python seed.py
+```
+
+Note: this writes directly to PostgreSQL via `psycopg2`. It does **not** show up on `/users` or `/api/users` yet, since the app itself still reads from in-memory data, not the database. Check the seeded rows directly instead:
+
+```bash
+docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "SELECT * FROM users;"
+```
 
 ## Alternative: Run Locally with Python
 
