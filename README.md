@@ -61,13 +61,19 @@ Alumni-Web-Programming/
 
 ## How to Run (Recommended: Docker Compose)
 
-Run these exact commands from the project root:
+First, create your local `.env` file from the provided example (this holds database credentials and is never committed to git):
+
+```bash
+cp .env.example .env
+```
+
+Then run:
 
 ```bash
 docker compose up --build
 ```
 
-The app will start and be available at `http://localhost:5000`. Stop it with `Ctrl+C`, then `docker compose down`.
+This starts two containers: the Flask app (`web`) and a PostgreSQL database (`db`, not wired into the app yet — see [DDD.md](./DDD.md)). The app will be available at `http://localhost:5000`. Stop everything with `Ctrl+C`, then `docker compose down`.
 
 ## Alternative: Run Locally with Python
 
