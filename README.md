@@ -8,12 +8,13 @@ A web platform built for the Web Programming course to connect graduates with th
 - **Greeting & Utility Endpoints:** Early API building blocks (`/hello`, `/sum`, etc.) used to learn and validate the routing layer.
 - **Static Pages:** Home and About pages describing the project.
 - **Containerized Deployment:** Docker & Docker Compose setup so the app runs identically on any machine.
-- **Future Milestones:** Alumni profile management, search/filtering, and a persistent database layer will be added in upcoming weeks.
+- **Future Milestones:** Alumni profile management, search/filtering, and a persistent **PostgreSQL** database layer will be added in upcoming weeks.
 
 ## Tech Stack
 
 - **Language:** Python 3.12
 - **Framework:** Flask
+- **Database:** PostgreSQL (planned — not wired up yet, see Key Features below)
 - **Containerization:** Docker & Docker Compose
 
 ## 🏗️ Project Structure (MVC Architecture)
