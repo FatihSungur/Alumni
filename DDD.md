@@ -69,3 +69,20 @@ When the database is actually introduced:
 ## Infrastructure Already in Place
 
 `docker-compose.yml` already defines a `db` service (`postgres:16`, with `POSTGRES_USER/PASSWORD/DB` all set to `alumni`, data persisted in a named volume) and passes the `web` service a `DATABASE_URL` environment variable pointing to it. The database container runs and accepts connections, but `app.py` does not read `DATABASE_URL` or connect to it yet — that wiring is the next step once the models above are implemented with real queries.
+
+## Migrations
+
+The `CREATE TABLE` statements above live in `migrations/001_create_tables.sql`. This file is mounted into the `db` container at `/docker-entrypoint-initdb.d/` (see `docker-compose.yml`), which is a built-in PostgreSQL image feature: on the **very first** startup of a fresh database (empty volume), it automatically runs every `.sql` file in that folder, in alphabetical order. That's why the file is named `001_...` — a future `002_...sql` would run right after it.
+
+**Important:** this only runs once, when the database is created from scratch. If the volume already has data in it, adding a new migration file will **not** run it automatically. During development, the simplest way to re-apply migrations is to wipe the volume and start fresh:
+
+```bash
+docker compose down -v   # -v also removes the postgres_data volume
+docker compose up --build
+```
+
+Verify the tables exist with:
+
+```bash
+docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "\dt"
+```

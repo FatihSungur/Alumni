@@ -43,6 +43,8 @@ Alumni-Web-Programming/
 │   └── announcements/
 │       ├── list.html                   # Lists all announcements + a form to create a new one
 │       └── edit.html                   # Pre-filled form to edit a single announcement
+├── migrations/
+│   └── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
 ├── requirements.txt                     # Python dependencies
 ├── Dockerfile                           # Container image definition
 └── docker-compose.yml                   # Local orchestration (build + run)
