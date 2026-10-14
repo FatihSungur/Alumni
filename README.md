@@ -14,7 +14,7 @@ A web platform built for the Web Programming course to connect graduates with th
 
 - **Language:** Python 3.12
 - **Framework:** Flask
-- **Database:** PostgreSQL (planned — not wired up yet, see Key Features below)
+- **Database:** PostgreSQL (planned — not wired up yet; see [DDD.md](./DDD.md) for the planned schema)
 - **Containerization:** Docker & Docker Compose
 
 ## 🏗️ Project Structure (MVC Architecture)
