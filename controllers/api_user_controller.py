@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 
+from models.job_application import JobApplication
+from models.job_posting import JobPosting
 from models.user import User
 
 api_user_bp = Blueprint("api_user", __name__, url_prefix="/api/users")
@@ -99,3 +101,53 @@ def user_item(user_id):
 
     deleted_user = User.delete(user_id)
     return jsonify(deleted_user)
+
+
+@api_user_bp.route("/<int:user_id>/job-postings", methods=["GET"])
+def user_job_postings(user_id):
+    """
+    Nested route: list every job posting created by this user (one-to-many).
+    ---
+    tags:
+      - ApiUserController
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of job postings created by this user
+      404:
+        description: User not found
+    """
+    user = User.get_by_id(user_id)
+    if user is None:
+        return jsonify(error="User not found"), 404
+
+    return jsonify(JobPosting.get_by_user(user_id))
+
+
+@api_user_bp.route("/<int:user_id>/applications", methods=["GET"])
+def user_applications(user_id):
+    """
+    Nested route: list every job this user applied to (many-to-many).
+    ---
+    tags:
+      - ApiUserController
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: List of jobs this user applied to
+      404:
+        description: User not found
+    """
+    user = User.get_by_id(user_id)
+    if user is None:
+        return jsonify(error="User not found"), 404
+
+    return jsonify(JobApplication.get_by_user(user_id))

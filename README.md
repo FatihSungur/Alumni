@@ -36,7 +36,9 @@ Alumni-Web-Programming/
 │   ├── user_controller.py              # Controller: HTML pages for /users (list, create, edit, delete)
 │   ├── api_user_controller.py          # Controller: JSON API for /api/users (same data, machine-readable)
 │   ├── announcement_controller.py      # Controller: HTML pages for /announcements (list, create, edit, delete)
-│   └── api_announcement_controller.py  # Controller: JSON API for /api/announcements
+│   ├── api_announcement_controller.py  # Controller: JSON API for /api/announcements
+│   ├── api_job_posting_controller.py   # Controller: JSON API for /api/job-postings (direct + nested /applications)
+│   └── api_job_application_controller.py # Controller: JSON API for /api/applications (direct routes only)
 ├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
 │   ├── index.html
 │   ├── about.html
@@ -136,6 +138,13 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | PUT    | `/api/announcements/<id>`     | Replaces all fields of the announcement with the given `id` and returns it as JSON |
 | PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
 | DELETE | `/api/announcements/<id>`     | Deletes the announcement with the given `id` and returns the deleted record as JSON |
+| GET/POST | `/api/job-postings`         | Direct route: list all job postings, or create one |
+| GET/PUT/PATCH/DELETE | `/api/job-postings/<id>` | Direct route: get, replace, partially update, or delete a job posting |
+| GET    | `/api/applications`           | Direct route: list every job application in the system |
+| GET/DELETE | `/api/applications/<id>`  | Direct route: get or delete a single application |
+| GET/POST | `/api/job-postings/<id>/applications` | Nested route: list who applied to this job posting, or apply to it (`user_id`, `applied_date`) |
+| GET    | `/api/users/<id>/job-postings` | Nested route: list every job posting created by this user (one-to-many) |
+| GET    | `/api/users/<id>/applications` | Nested route: list every job this user applied to (many-to-many) |
 | GET    | `/api/swagger`                | Interactive Swagger UI (powered by [flasgger](https://github.com/flasgger/flasgger)) listing every documented route |
 
 > **Project rule:** `/api/swagger` is generated dynamically from the docstrings on each route, so it always reflects the current endpoints automatically. Whenever a new endpoint is added, give it a short YAML docstring (see the existing routes for examples) so it shows up in Swagger — then just visit `/api/swagger` in a browser to confirm it picked it up.

@@ -131,6 +131,18 @@ Both constraints from the schema are enforced by PostgreSQL itself, not by appli
 - Applying the same user to the same job twice: `JobApplication.create(...)` returns `None` the second time (the `UniqueViolation` is caught and handled gracefully).
 - Creating a job posting with a `posted_by` that doesn't exist in `users`: raises `psycopg2.errors.ForeignKeyViolation` — the insert is rejected outright.
 
+## Direct vs. Nested Routes
+
+The relationship methods above are now exposed as actual HTTP routes, split into two styles:
+
+- **Direct routes** operate on one resource by itself: `/api/job-postings`, `/api/job-postings/<id>`, `/api/applications`, `/api/applications/<id>`. Standard CRUD, no relationship involved in the URL.
+- **Nested routes** put a resource's URL *underneath* the resource it relates to, so the URL itself documents the relationship:
+  - `GET/POST /api/job-postings/<id>/applications` — "the applications that belong to this job posting" (and applying to it)
+  - `GET /api/users/<id>/job-postings` — "the job postings that belong to this user" (the one-to-many)
+  - `GET /api/users/<id>/applications` — "the applications that belong to this user" (the many-to-many, other side)
+
+Nested routes are implemented in whichever controller owns the *parent* resource in the URL — e.g. `/api/users/<id>/job-postings` lives in `api_user_controller.py`, not `api_job_posting_controller.py`, even though it returns `JobPosting` data. Each nested route first checks the parent exists (404 if not) before querying the relationship.
+
 ## Migrations
 
 The `CREATE TABLE` statements above live in `migrations/001_create_tables.sql`. This file is mounted into the `db` container at `/docker-entrypoint-initdb.d/` (see `docker-compose.yml`), which is a built-in PostgreSQL image feature: on the **very first** startup of a fresh database (empty volume), it automatically runs every `.sql` file in that folder, in alphabetical order. That's why the file is named `001_...` — a future `002_...sql` would run right after it.
