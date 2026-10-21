@@ -28,7 +28,9 @@ Alumni-Web-Programming/
 │   ├── __init__.py
 │   ├── db.py                            # Shared PostgreSQL connection helper
 │   ├── user.py                         # Model: User CRUD, backed by the `users` table
-│   └── announcement.py                 # Model: Announcement CRUD, backed by the `announcements` table
+│   ├── announcement.py                 # Model: Announcement CRUD, backed by the `announcements` table
+│   ├── job_posting.py                  # Model: JobPosting CRUD, backed by the `job_postings` table
+│   └── job_application.py              # Model: JobApplication CRUD, backed by the `job_applications` table
 ├── controllers/
 │   ├── __init__.py
 │   ├── user_controller.py              # Controller: HTML pages for /users (list, create, edit, delete)

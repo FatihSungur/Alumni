@@ -1,12 +1,12 @@
 # Database Design Document (DDD)
 
-This document describes the PostgreSQL schema used by this project. The application is now connected to PostgreSQL — `models/user.py` and `models/announcement.py` read and write directly to the tables below via `models/db.py`. Data persists across restarts (`docker compose down` / `up`).
+This document describes the PostgreSQL schema used by this project. The application is now connected to PostgreSQL — `models/user.py`, `models/announcement.py`, `models/job_posting.py`, and `models/job_application.py` all read and write directly to the tables below via `models/db.py`. Data persists across restarts (`docker compose down` / `up`).
 
 ## Status
 
 - **Database engine:** PostgreSQL — connected and in use
-- **Current storage:** The `users` and `announcements` tables, queried directly via `psycopg2` (no ORM)
-- **Scope:** `users`, `announcements`, and the newly designed `job_postings` + `job_applications` (not implemented in code yet — schema only, see below)
+- **Current storage:** `users`, `announcements`, `job_postings`, and `job_applications`, all queried directly via `psycopg2` (no ORM)
+- **Scope:** All four tables are both designed here and implemented as models (see "App ↔ Database Wiring" below)
 
 ## Schema Overview
 
@@ -118,6 +118,19 @@ There is currently no relationship between `announcements` and the other tables 
 
 Verified behavior: creating a record, running `docker compose down` then `docker compose up`, and the record is still there — the "forgetting test" from before no longer applies to `users`/`announcements`.
 
+### `JobPosting` and `JobApplication` models
+
+`models/job_posting.py` follows the exact same pattern as `User`/`Announcement` (`create`, `get_all`, `get_by_id`, `update`, `patch`, `delete`), plus one relationship-specific method: **`JobPosting.get_by_user(user_id)`**, which queries `WHERE posted_by = %s` — this is the one-to-many relationship in action, fetching every posting made by a given user.
+
+`models/job_application.py` has `create`, `get_all`, `get_by_id`, `delete` (no `update`/`patch` — an application either exists or doesn't, there's nothing partial to edit), plus two relationship-specific methods that each use a SQL `JOIN` to pull in useful details from the other side of the many-to-many relationship:
+
+- **`JobApplication.get_by_user(user_id)`** — joins with `job_postings` to answer "what jobs has this user applied to", returning each application's `title`/`company` instead of just a bare `job_posting_id`.
+- **`JobApplication.get_by_job_posting(job_posting_id)`** — joins with `users` to answer "who applied to this job", returning each applicant's `first_name`/`last_name`/`email` instead of just a bare `user_id`.
+
+Both constraints from the schema are enforced by PostgreSQL itself, not by application code — verified directly:
+- Applying the same user to the same job twice: `JobApplication.create(...)` returns `None` the second time (the `UniqueViolation` is caught and handled gracefully).
+- Creating a job posting with a `posted_by` that doesn't exist in `users`: raises `psycopg2.errors.ForeignKeyViolation` — the insert is rejected outright.
+
 ## Migrations
 
 The `CREATE TABLE` statements above live in `migrations/001_create_tables.sql`. This file is mounted into the `db` container at `/docker-entrypoint-initdb.d/` (see `docker-compose.yml`), which is a built-in PostgreSQL image feature: on the **very first** startup of a fresh database (empty volume), it automatically runs every `.sql` file in that folder, in alphabetical order. That's why the file is named `001_...` — a future `002_...sql` would run right after it.
@@ -135,7 +148,13 @@ Verify the tables exist with:
 docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "\dt"
 ```
 
-**`migrations/002_create_job_postings_and_applications.sql`** has been written — it creates `job_postings` first, then `job_applications` right after (order matters here, since `job_applications` references `job_postings`). It has **not been applied yet** — the existing database volume already has data in it, so this file won't run automatically on its own (see the "Important" note above). It will be applied later, once we're ready to also build the `JobPosting`/`JobApplication` models and controllers to match.
+**`migrations/002_create_job_postings_and_applications.sql`** creates `job_postings` first, then `job_applications` right after (order matters here, since `job_applications` references `job_postings`). Since the existing database volume already had data in it (the auto-run-on-first-boot trick doesn't apply here, see the "Important" note above), it was applied **manually**:
+
+```bash
+docker exec -i alumni-web-programming-db-1 psql -U alumni -d alumni < migrations/002_create_job_postings_and_applications.sql
+```
+
+This is the standard way to apply a migration to a database that already exists — it ran the same `CREATE TABLE` statements against the live database without touching the existing `users`/`announcements` data.
 
 ## Factory & Seed
 
