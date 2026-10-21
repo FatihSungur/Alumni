@@ -6,7 +6,7 @@ This document describes the PostgreSQL schema used by this project. The applicat
 
 - **Database engine:** PostgreSQL — connected and in use
 - **Current storage:** The `users` and `announcements` tables, queried directly via `psycopg2` (no ORM)
-- **Scope:** Only the two entities the app manages — `users` and `announcements`
+- **Scope:** `users`, `announcements`, and the newly designed `job_postings` (not implemented in code yet — schema only, see below)
 
 ## Schema Overview
 
@@ -54,9 +54,37 @@ CREATE TABLE announcements (
 );
 ```
 
+### Table: `job_postings`
+
+A new entity: one job posting shared by an alumnus. This is the first table with a relationship to another table — see **Relationships** below.
+
+| Column        | Type           | Constraints                          | Notes                                              |
+|---------------|----------------|----------------------------------------|------------------------------------------------------|
+| `id`          | `SERIAL`       | `PRIMARY KEY`                          | Auto-incrementing                                    |
+| `title`       | `VARCHAR(200)` | `NOT NULL`                             | e.g. "Backend Developer"                            |
+| `company`     | `VARCHAR(150)` | `NOT NULL`                             |                                                       |
+| `description` | `TEXT`         | `NOT NULL`                             | Full job description                                 |
+| `location`    | `VARCHAR(150)` | `NOT NULL`                             |                                                       |
+| `posted_by`   | `INTEGER`      | `NOT NULL`, `REFERENCES users(id)`     | The alumnus who posted this job — the "many" side of the one-to-many relationship with `users` |
+| `posted_date` | `DATE`         | `NOT NULL`                             |                                                       |
+
+```sql
+CREATE TABLE job_postings (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    company VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    location VARCHAR(150) NOT NULL,
+    posted_by INTEGER NOT NULL REFERENCES users(id),
+    posted_date DATE NOT NULL
+);
+```
+
 ## Relationships
 
-There are currently no relationships between `users` and `announcements` — they are independent entities, matching how the two models work today. A future iteration could add a `created_by` foreign key on `announcements` pointing to `users.id` if announcements need an author, but that is out of scope for now.
+**`users` → `job_postings` is one-to-many: one user can post many job postings, but each job posting belongs to exactly one user.** This is implemented with a foreign key: `job_postings.posted_by` points to `users.id`. In plain terms — every row in `job_postings` must name a `users.id` that actually exists; PostgreSQL enforces this automatically and will reject an insert/update that references a non-existent user.
+
+There is currently no relationship between `announcements` and the other tables — it remains an independent entity. A future iteration could add a `created_by` foreign key on `announcements` pointing to `users.id` as well, following the same pattern as `job_postings`, but that is out of scope for now.
 
 ## App ↔ Database Wiring
 
