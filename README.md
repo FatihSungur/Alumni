@@ -38,22 +38,32 @@ Alumni-Web-Programming/
 │   ├── announcement_controller.py      # Controller: HTML pages for /announcements (list, create, edit, delete)
 │   ├── api_announcement_controller.py  # Controller: JSON API for /api/announcements
 │   ├── api_job_posting_controller.py   # Controller: JSON API for /api/job-postings (direct + nested /applications)
-│   └── api_job_application_controller.py # Controller: JSON API for /api/applications (direct routes only)
+│   ├── api_job_application_controller.py # Controller: JSON API for /api/applications (direct routes only)
+│   ├── job_posting_controller.py       # Controller: HTML pages for /job-postings (list, create, edit, delete)
+│   └── job_application_controller.py   # Controller: HTML pages for /applications (list, apply, delete)
 ├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
 │   ├── index.html
 │   ├── about.html
 │   ├── users/
 │   │   ├── list.html                   # Lists all users + a form to create a new one
 │   │   └── edit.html                   # Pre-filled form to edit a single user
-│   └── announcements/
-│       ├── list.html                   # Lists all announcements + a form to create a new one
-│       └── edit.html                   # Pre-filled form to edit a single announcement
+│   ├── announcements/
+│   │   ├── list.html                   # Lists all announcements + a form to create a new one
+│   │   └── edit.html                   # Pre-filled form to edit a single announcement
+│   ├── job_postings/
+│   │   ├── list.html                   # Lists all job postings + a form to create a new one
+│   │   └── edit.html                   # Pre-filled form to edit a single job posting
+│   └── job_applications/
+│       └── list.html                   # Lists all applications + a form to apply to a job
 ├── migrations/
-│   └── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
+│   ├── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
+│   └── 002_create_job_postings_and_applications.sql # Creates `job_postings` + `job_applications`
 ├── factories/
 │   ├── __init__.py
 │   ├── user_factory.py                 # Generates realistic fake user data (via Faker)
-│   └── announcement_factory.py         # Generates realistic fake announcement data (via Faker)
+│   ├── announcement_factory.py         # Generates realistic fake announcement data (via Faker)
+│   ├── job_posting_factory.py          # Generates realistic fake job posting data (via Faker)
+│   └── job_application_factory.py      # Generates realistic fake job application data (via Faker)
 ├── seed.py                              # Uses the factories to insert sample rows directly into PostgreSQL
 ├── requirements.txt                     # Python dependencies
 ├── Dockerfile                           # Container image definition
@@ -89,7 +99,7 @@ This starts two containers: the Flask app (`web`) and a PostgreSQL database (`db
 
 ### Seeding sample data into the database
 
-Once the containers are running, you can fill the database with realistic fake data (10 users, 5 announcements) using the Factory + Seed scripts:
+Once the containers are running, you can fill the database with realistic fake data (10 users, 5 announcements, 8 job postings, up to 10 job applications) using the Factory + Seed scripts:
 
 ```bash
 docker compose exec web python seed.py
@@ -138,6 +148,14 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | PUT    | `/api/announcements/<id>`     | Replaces all fields of the announcement with the given `id` and returns it as JSON |
 | PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
 | DELETE | `/api/announcements/<id>`     | Deletes the announcement with the given `id` and returns the deleted record as JSON |
+| GET    | `/job-postings`               | HTML page listing job postings, with a form to create a new one (JobPostingController) |
+| POST   | `/job-postings`               | Creates a job posting from the HTML form and redirects back to the list |
+| GET    | `/job-postings/<id>/edit`     | HTML form pre-filled with the job posting's current data |
+| POST   | `/job-postings/<id>/edit`     | Saves the edited job posting and redirects back to the list |
+| POST   | `/job-postings/<id>/delete`   | Deletes the job posting and redirects back to the list |
+| GET    | `/applications`               | HTML page listing job applications, with a form to apply to a job (JobApplicationController) |
+| POST   | `/applications`               | Creates an application from the HTML form (`user_id`, `job_posting_id`, `applied_date`); returns `409` if already applied |
+| POST   | `/applications/<id>/delete`   | Deletes the application and redirects back to the list |
 | GET/POST | `/api/job-postings`         | Direct route: list all job postings, or create one |
 | GET/PUT/PATCH/DELETE | `/api/job-postings/<id>` | Direct route: get, replace, partially update, or delete a job posting |
 | GET    | `/api/applications`           | Direct route: list every job application in the system |

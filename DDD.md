@@ -172,7 +172,7 @@ This is the standard way to apply a migration to a database that already exists 
 
 Two separate concepts, often confused:
 
-- **Factory** (`factories/user_factory.py`, `factories/announcement_factory.py`) — a class whose only job is to *generate* one fake-but-realistic record (via the [Faker](https://faker.readthedocs.io/) library). It does not touch the database at all; calling `UserFactory.create()` just returns a Python dict.
+- **Factory** (`factories/*_factory.py`) — a class whose only job is to *generate* one fake-but-realistic record (via the [Faker](https://faker.readthedocs.io/) library). It does not touch the database at all; calling `UserFactory.create()` just returns a Python dict.
 - **Seed** (`seed.py`) — a script that calls the factories in a loop and actually `INSERT`s the results into PostgreSQL via `psycopg2`, then `commit()`s the transaction.
 
 Run it (containers must already be up):
@@ -181,6 +181,11 @@ Run it (containers must already be up):
 docker compose exec web python seed.py
 ```
 
-This inserts 10 fake users and 5 fake announcements directly into the `users` and `announcements` tables. It connects using the same `DATABASE_URL` the `web` container already has from `.env` — no extra configuration needed.
+This inserts 10 fake users, 5 fake announcements, 8 fake job postings, and up to 10 fake job applications. It connects using the same `DATABASE_URL` the `web` container already has from `.env` — no extra configuration needed.
 
-Since the app is now wired to the same database (see App ↔ Database Wiring above), seeded rows appear immediately on `/users`, `/announcements`, and their `/api/...` equivalents — no restart needed.
+**`job_postings` and `job_applications` need a bit more care than `users`/`announcements`**, because their factories can't invent a `posted_by`/`user_id`/`job_posting_id` out of thin air — those must be real foreign keys. So `seed.py`:
+1. Seeds `users` first, then runs `SELECT id FROM users` to get real user ids.
+2. Passes a random real `user_id` into `JobPostingFactory.create(posted_by)` for each job posting, then runs `SELECT id FROM job_postings` to get real job posting ids.
+3. Passes a random real `user_id` + `job_posting_id` into `JobApplicationFactory.create(...)` for each application — using `INSERT ... ON CONFLICT (user_id, job_posting_id) DO NOTHING` so that if the random pick happens to collide with the `UNIQUE` constraint (someone "applying" to the same job twice), it's silently skipped instead of crashing the whole script. This is why the seeded application count is "up to 10", not always exactly 10.
+
+Since the app is now wired to the same database (see App ↔ Database Wiring above), seeded rows appear immediately on `/users`, `/announcements`, `/job-postings`, `/applications`, and their `/api/...` equivalents — no restart needed.

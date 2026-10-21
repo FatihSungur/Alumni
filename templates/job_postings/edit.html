@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Alumni - Edit Job Posting</title>
+</head>
+<body>
+    <h1>Edit Job Posting #{{ job_posting.id }}</h1>
+
+    <form method="POST" action="/job-postings/{{ job_posting.id }}/edit">
+        <label>Title: <input type="text" name="title" value="{{ job_posting.title }}"></label><br>
+        <label>Company: <input type="text" name="company" value="{{ job_posting.company }}"></label><br>
+        <label>Description: <input type="text" name="description" value="{{ job_posting.description }}"></label><br>
+        <label>Location: <input type="text" name="location" value="{{ job_posting.location }}"></label><br>
+        <label>Posted date: <input type="text" name="posted_date" value="{{ job_posting.posted_date }}"></label><br>
+        <button type="submit">Save</button>
+    </form>
+
+    <p><em>Note: "Posted by" cannot be changed once a job posting is created.</em></p>
+    <p><a href="/job-postings">Back to list</a></p>
+</body>
+</html>

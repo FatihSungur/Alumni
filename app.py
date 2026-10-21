@@ -6,6 +6,8 @@ from controllers.api_announcement_controller import api_announcement_bp
 from controllers.api_job_application_controller import api_job_application_bp
 from controllers.api_job_posting_controller import api_job_posting_bp
 from controllers.api_user_controller import api_user_bp
+from controllers.job_application_controller import job_application_bp
+from controllers.job_posting_controller import job_posting_bp
 from controllers.user_controller import user_bp
 
 app = Flask(__name__)
@@ -35,6 +37,8 @@ app.register_blueprint(api_announcement_bp)
 app.register_blueprint(announcement_bp)
 app.register_blueprint(api_job_posting_bp)
 app.register_blueprint(api_job_application_bp)
+app.register_blueprint(job_posting_bp)
+app.register_blueprint(job_application_bp)
 
 
 @app.route("/")
