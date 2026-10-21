@@ -6,7 +6,7 @@ This document describes the PostgreSQL schema used by this project. The applicat
 
 - **Database engine:** PostgreSQL — connected and in use
 - **Current storage:** The `users` and `announcements` tables, queried directly via `psycopg2` (no ORM)
-- **Scope:** `users`, `announcements`, and the newly designed `job_postings` (not implemented in code yet — schema only, see below)
+- **Scope:** `users`, `announcements`, and the newly designed `job_postings` + `job_applications` (not implemented in code yet — schema only, see below)
 
 ## Schema Overview
 
@@ -80,9 +80,33 @@ CREATE TABLE job_postings (
 );
 ```
 
+### Table: `job_applications`
+
+A new entity: records that a given user applied to a given job posting. This is the **junction table** that makes applying possible — without it, `job_postings` only supports *creating* a listing, not *applying* to one.
+
+| Column          | Type        | Constraints                                   | Notes                                               |
+|-----------------|-------------|-------------------------------------------------|-------------------------------------------------------|
+| `id`            | `SERIAL`    | `PRIMARY KEY`                                    | Auto-incrementing                                      |
+| `user_id`       | `INTEGER`   | `NOT NULL`, `REFERENCES users(id)`               | The alumnus applying                                  |
+| `job_posting_id`| `INTEGER`   | `NOT NULL`, `REFERENCES job_postings(id)`        | The job they're applying to                           |
+| `applied_date`  | `DATE`      | `NOT NULL`                                       |                                                         |
+| —               | —           | `UNIQUE (user_id, job_posting_id)`               | Prevents the same user from applying to the same job twice |
+
+```sql
+CREATE TABLE job_applications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    job_posting_id INTEGER NOT NULL REFERENCES job_postings(id),
+    applied_date DATE NOT NULL,
+    UNIQUE (user_id, job_posting_id)
+);
+```
+
 ## Relationships
 
 **`users` → `job_postings` is one-to-many: one user can post many job postings, but each job posting belongs to exactly one user.** This is implemented with a foreign key: `job_postings.posted_by` points to `users.id`. In plain terms — every row in `job_postings` must name a `users.id` that actually exists; PostgreSQL enforces this automatically and will reject an insert/update that references a non-existent user.
+
+**`users` ↔ `job_postings` is also many-to-many, for applications: one user can apply to many job postings, and one job posting can receive applications from many users.** A single foreign key can't express this (neither table could hold "many" values in one column), so it's modeled with the `job_applications` junction table: each row connects one `user_id` to one `job_posting_id`. To find "who applied to job #5", query `job_applications WHERE job_posting_id = 5`; to find "what has user #2 applied to", query `job_applications WHERE user_id = 2`. The `UNIQUE (user_id, job_posting_id)` constraint stops someone from applying to the same job twice.
 
 There is currently no relationship between `announcements` and the other tables — it remains an independent entity. A future iteration could add a `created_by` foreign key on `announcements` pointing to `users.id` as well, following the same pattern as `job_postings`, but that is out of scope for now.
 
@@ -111,7 +135,7 @@ Verify the tables exist with:
 docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "\dt"
 ```
 
-**`migrations/002_create_job_postings.sql`** has been written (creates `job_postings`, following the naming convention above), but it has **not been applied yet** — the existing database volume already has data in it, so this file won't run automatically on its own (see the "Important" note above). It will be applied later, once we're ready to also update the `JobPosting` model and controllers to match.
+**`migrations/002_create_job_postings.sql`** and **`migrations/003_create_job_applications.sql`** have been written (in that order, since `job_applications` references `job_postings`), but **neither has been applied yet** — the existing database volume already has data in it, so these files won't run automatically on their own (see the "Important" note above). They will be applied later, once we're ready to also build the `JobPosting`/`JobApplication` models and controllers to match.
 
 ## Factory & Seed
 
