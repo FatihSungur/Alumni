@@ -111,6 +111,8 @@ Verify the tables exist with:
 docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "\dt"
 ```
 
+**`migrations/002_create_job_postings.sql`** has been written (creates `job_postings`, following the naming convention above), but it has **not been applied yet** — the existing database volume already has data in it, so this file won't run automatically on its own (see the "Important" note above). It will be applied later, once we're ready to also update the `JobPosting` model and controllers to match.
+
 ## Factory & Seed
 
 Two separate concepts, often confused:
