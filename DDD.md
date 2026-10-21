@@ -135,7 +135,7 @@ Verify the tables exist with:
 docker exec alumni-web-programming-db-1 psql -U alumni -d alumni -c "\dt"
 ```
 
-**`migrations/002_create_job_postings.sql`** and **`migrations/003_create_job_applications.sql`** have been written (in that order, since `job_applications` references `job_postings`), but **neither has been applied yet** — the existing database volume already has data in it, so these files won't run automatically on their own (see the "Important" note above). They will be applied later, once we're ready to also build the `JobPosting`/`JobApplication` models and controllers to match.
+**`migrations/002_create_job_postings_and_applications.sql`** has been written — it creates `job_postings` first, then `job_applications` right after (order matters here, since `job_applications` references `job_postings`). It has **not been applied yet** — the existing database volume already has data in it, so this file won't run automatically on its own (see the "Important" note above). It will be applied later, once we're ready to also build the `JobPosting`/`JobApplication` models and controllers to match.
 
 ## Factory & Seed
 
