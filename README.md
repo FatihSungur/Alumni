@@ -16,6 +16,7 @@ A web platform built for the Web Programming course to connect graduates with th
 - **Framework:** Flask
 - **Database:** PostgreSQL — `users` and `announcements` are fully backed by it (see [DDD.md](./DDD.md) for the schema)
 - **Containerization:** Docker & Docker Compose
+- **Design:** see [brand.md](./brand.md) for the visual identity (colors, fonts, logo) and [DESIGN.md](./DESIGN.md) for how it's applied across pages
 
 ## 🏗️ Project Structure (MVC Architecture)
 
@@ -23,6 +24,8 @@ The app follows the **Model-View-Controller (MVC)** pattern. Each concern lives 
 
 ```
 Alumni-Web-Programming/
+├── brand.md                             # Visual identity: color palette, fonts, logo
+├── DESIGN.md                            # How the brand gets applied: components, layout, spacing
 ├── app.py                              # Entry point: creates the Flask app, wires up Swagger, registers controllers
 ├── models/
 │   ├── __init__.py
@@ -45,6 +48,8 @@ Alumni-Web-Programming/
 │   ├── __init__.py
 │   ├── logger.py                       # Request logger: logs method/path/status/duration for every request
 │   └── error_handlers.py               # 404 guardian (generic 404 page) + 5xx guardian (logs to logs/error.log)
+├── static/
+│   └── style.css                       # Shared stylesheet: CSS variables for the brand, nav/button/card/table components
 ├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
 │   ├── index.html
 │   ├── about.html
