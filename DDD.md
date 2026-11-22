@@ -189,3 +189,15 @@ This inserts 10 fake users, 5 fake announcements, 8 fake job postings, and up to
 3. Passes a random real `user_id` + `job_posting_id` into `JobApplicationFactory.create(...)` for each application — using `INSERT ... ON CONFLICT (user_id, job_posting_id) DO NOTHING` so that if the random pick happens to collide with the `UNIQUE` constraint (someone "applying" to the same job twice), it's silently skipped instead of crashing the whole script. This is why the seeded application count is "up to 10", not always exactly 10.
 
 Since the app is now wired to the same database (see App ↔ Database Wiring above), seeded rows appear immediately on `/users`, `/announcements`, `/job-postings`, `/applications`, and their `/api/...` equivalents — no restart needed.
+
+## Middleware & Error Handling
+
+Three pieces live in `middleware/`, wired into `app.py` once, app-wide, instead of being repeated per route:
+
+- **`middleware/logger.py` — request logger.** A `before_request`/`after_request` pair that times every request and logs `METHOD PATH -> STATUS (Xms)` via `app.logger`. This is observability, not business logic — no route needs to know it's happening.
+- **`middleware/error_handlers.py` — 404 guardian.** `@app.errorhandler(404)` catches any URL Flask can't match to a route and renders `templates/404.html` instead of Flask's default plain-text 404. Note: this only catches *unmatched routes*; the existing per-resource "not found" JSON responses already returned by individual controllers (e.g. a missing `job_posting_id`) are untouched, since those are explicit `return ..., 404`s, not routing failures.
+- **`middleware/error_handlers.py` — 5xx guardian.** `@app.errorhandler(Exception)` catches any unhandled exception (a real bug) that would otherwise crash the request. It logs the full method, path, and traceback to `logs/error.log` (via a dedicated `error_logger` with a `FileHandler`), then returns a generic, non-technical message to the caller with a 500 status — the real stack trace (which can leak file paths, SQL, etc.) never reaches the client. HTTP exceptions that aren't plain 500s (e.g. a deliberate `abort(400)`) are re-raised as-is so Flask's normal handling still applies to them.
+
+**Why `logs/error.log` isn't committed to git:** the log file is a generated, ever-growing runtime artifact (like a build output), not source code — this project's `.gitignore` already excludes `*.log`. The `logs/` directory itself is created automatically at startup via `os.makedirs(..., exist_ok=True)` in `error_handlers.py`, so nothing needs to be committed for it to exist.
+
+**Why `PROPAGATE_EXCEPTIONS = False` is set in `app.py`:** with `debug=True` (used for local development), Flask/Werkzeug's interactive debugger intercepts unhandled exceptions before our own error handler gets a chance to run. Setting this explicitly to `False` makes the 5xx guardian fire even in debug mode.

@@ -41,9 +41,14 @@ Alumni-Web-Programming/
 │   ├── api_job_application_controller.py # Controller: JSON API for /api/applications (direct routes only)
 │   ├── job_posting_controller.py       # Controller: HTML pages for /job-postings (list, create, edit, delete)
 │   └── job_application_controller.py   # Controller: HTML pages for /applications (list, apply, delete)
+├── middleware/
+│   ├── __init__.py
+│   ├── logger.py                       # Request logger: logs method/path/status/duration for every request
+│   └── error_handlers.py               # 404 guardian (generic 404 page) + 5xx guardian (logs to logs/error.log)
 ├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
 │   ├── index.html
 │   ├── about.html
+│   ├── 404.html                        # Generic "page not found" page, shown by the 404 guardian
 │   ├── users/
 │   │   ├── list.html                   # Lists all users + a form to create a new one
 │   │   └── edit.html                   # Pre-filled form to edit a single user
@@ -65,6 +70,7 @@ Alumni-Web-Programming/
 │   ├── job_posting_factory.py          # Generates realistic fake job posting data (via Faker)
 │   └── job_application_factory.py      # Generates realistic fake job application data (via Faker)
 ├── seed.py                              # Uses the factories to insert sample rows directly into PostgreSQL
+├── logs/                                # Created automatically at startup; holds error.log (gitignored, not committed)
 ├── requirements.txt                     # Python dependencies
 ├── Dockerfile                           # Container image definition
 └── docker-compose.yml                   # Local orchestration (build + run)
@@ -75,6 +81,7 @@ Alumni-Web-Programming/
 - **Model** (`models/`) — owns the data and the rules for changing it (create, read, update, delete). Knows nothing about HTTP, HTML, or JSON.
 - **View** (`templates/`) — the HTML the user actually sees. Knows nothing about where the data came from, it just renders whatever it's given.
 - **Controller** (`controllers/`) — the bridge. Receives the HTTP request, asks the Model for data, hands that data to a View (or turns it straight into JSON), and returns the result. Each resource (`User`, `Announcement`) has two controllers on purpose: one serves human users through HTML pages (`UserController`, `AnnouncementController`), the other serves other programs through JSON (`ApiUserController`, `ApiAnnouncementController`) — both talk to the exact same Model underneath.
+- **Middleware** (`middleware/`) — cross-cutting code that runs for every request regardless of route: request logging and the 404/5xx error guardians. See [DDD.md](./DDD.md#middleware--error-handling) for details.
 
 ## Prerequisites
 
