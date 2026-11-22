@@ -201,3 +201,19 @@ Three pieces live in `middleware/`, wired into `app.py` once, app-wide, instead 
 **Why `logs/error.log` isn't committed to git:** the log file is a generated, ever-growing runtime artifact (like a build output), not source code — this project's `.gitignore` already excludes `*.log`. The `logs/` directory itself is created automatically at startup via `os.makedirs(..., exist_ok=True)` in `error_handlers.py`, so nothing needs to be committed for it to exist.
 
 **Why `PROPAGATE_EXCEPTIONS = False` is set in `app.py`:** with `debug=True` (used for local development), Flask/Werkzeug's interactive debugger intercepts unhandled exceptions before our own error handler gets a chance to run. Setting this explicitly to `False` makes the 5xx guardian fire even in debug mode.
+
+### Validation rules & the 400 response
+
+Without validation, bad input (e.g. a job posting with no title) either silently inserts garbage or crashes with a raw database error. Rather than scattering the same checks across every controller that touches `job_postings` (the "without middleware" problem — the same rule re-implemented slightly differently in each place), the rules live in one place, the Model, and every controller calls the same function before creating a record.
+
+**Rules for creating a `job_posting`** (enforced by `JobPosting.validate(title, company)` in `models/job_posting.py`):
+
+| Field | Rule |
+|---|---|
+| `title` | Required, max `JobPosting.MAX_TITLE_LENGTH` (120) characters |
+| `company` | Required |
+| `description`, `location` | Optional |
+
+If `validate(...)` returns any errors, the request never reaches `JobPosting.create(...)`:
+- `api_job_posting_controller.py` returns `400 {"error": "..."}` (JSON) — the client sent invalid data, so `400 Bad Request` is the correct status, distinct from `404` (resource doesn't exist) or `500` (our own bug).
+- `job_posting_controller.py` (the HTML form) redirects back to `/job-postings` with the error message in a query parameter, which `templates/job_postings/list.html` displays above the table — the Post-Redirect-Get pattern, same as every other create/edit flow in this app, just carrying the failure reason along with it.

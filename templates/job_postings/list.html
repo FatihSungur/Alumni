@@ -7,6 +7,10 @@
 <body>
     <h1>Job Postings</h1>
 
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
     <table border="1" cellpadding="6">
         <thead>
             <tr>

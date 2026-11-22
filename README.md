@@ -156,14 +156,14 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
 | DELETE | `/api/announcements/<id>`     | Deletes the announcement with the given `id` and returns the deleted record as JSON |
 | GET    | `/job-postings`               | HTML page listing job postings, with a form to create a new one (JobPostingController) |
-| POST   | `/job-postings`               | Creates a job posting from the HTML form and redirects back to the list |
+| POST   | `/job-postings`               | Creates a job posting from the HTML form and redirects back to the list; redirects back with `?error=...` instead if `title`/`company` fail validation (see DDD.md) |
 | GET    | `/job-postings/<id>/edit`     | HTML form pre-filled with the job posting's current data |
 | POST   | `/job-postings/<id>/edit`     | Saves the edited job posting and redirects back to the list |
 | POST   | `/job-postings/<id>/delete`   | Deletes the job posting and redirects back to the list |
 | GET    | `/applications`               | HTML page listing job applications, with a form to apply to a job (JobApplicationController) |
 | POST   | `/applications`               | Creates an application from the HTML form (`user_id`, `job_posting_id`, `applied_date`); returns `409` if already applied |
 | POST   | `/applications/<id>/delete`   | Deletes the application and redirects back to the list |
-| GET/POST | `/api/job-postings`         | Direct route: list all job postings, or create one |
+| GET/POST | `/api/job-postings`         | Direct route: list all job postings, or create one; returns `400` if `title`/`company` fail validation (see DDD.md) |
 | GET/PUT/PATCH/DELETE | `/api/job-postings/<id>` | Direct route: get, replace, partially update, or delete a job posting |
 | GET    | `/api/applications`           | Direct route: list every job application in the system |
 | GET/DELETE | `/api/applications/<id>`  | Direct route: get or delete a single application |

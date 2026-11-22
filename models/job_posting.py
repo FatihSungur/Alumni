@@ -4,6 +4,21 @@ COLUMNS = "id, title, company, description, location, posted_by, posted_date"
 
 
 class JobPosting:
+    MAX_TITLE_LENGTH = 120
+
+    @staticmethod
+    def validate(title, company):
+        """Field rules for creating a job posting (see DDD.md). Returns a list of
+        error messages — empty means the data is valid."""
+        errors = []
+        if not title:
+            errors.append("title required")
+        elif len(title) > JobPosting.MAX_TITLE_LENGTH:
+            errors.append(f"title must be at most {JobPosting.MAX_TITLE_LENGTH} characters")
+        if not company:
+            errors.append("company required")
+        return errors
+
     @staticmethod
     def create(title, company, description, location, posted_by, posted_date):
         connection = get_connection()

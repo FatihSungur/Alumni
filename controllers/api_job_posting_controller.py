@@ -37,8 +37,14 @@ def job_postings_collection():
         description: List of job postings
       201:
         description: Created job posting
+      400:
+        description: Invalid job posting data (see error message)
     """
     if request.method == "POST":
+        errors = JobPosting.validate(request.form.get("title"), request.form.get("company"))
+        if errors:
+            return jsonify(error=", ".join(errors)), 400
+
         job_posting = JobPosting.create(
             request.form.get("title"),
             request.form.get("company"),

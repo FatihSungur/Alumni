@@ -35,9 +35,13 @@ def job_postings_collection():
       200:
         description: HTML page listing job postings
       302:
-        description: Redirect back to the list after creating a job posting
+        description: Redirect back to the list after creating a job posting, or back with an error if the data is invalid
     """
     if request.method == "POST":
+        errors = JobPosting.validate(request.form.get("title"), request.form.get("company"))
+        if errors:
+            return redirect(url_for("job_posting.job_postings_collection", error=", ".join(errors)))
+
         JobPosting.create(
             request.form.get("title"),
             request.form.get("company"),
@@ -48,7 +52,11 @@ def job_postings_collection():
         )
         return redirect(url_for("job_posting.job_postings_collection"))
 
-    return render_template("job_postings/list.html", job_postings=JobPosting.get_all())
+    return render_template(
+        "job_postings/list.html",
+        job_postings=JobPosting.get_all(),
+        error=request.args.get("error"),
+    )
 
 
 @job_posting_bp.route("/<int:job_posting_id>/edit", methods=["GET", "POST"])
