@@ -1,51 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Alumni - Job Applications</title>
-</head>
-<body>
-    <h1>Job Applications</h1>
+{% extends "base.html" %}
 
-    <table border="1" cellpadding="6">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>User ID</th>
-                <th>Job Posting ID</th>
-                <th>Applied Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for application in applications %}
-            <tr>
-                <td>{{ application.id }}</td>
-                <td>{{ application.user_id }}</td>
-                <td>{{ application.job_posting_id }}</td>
-                <td>{{ application.applied_date }}</td>
-                <td>
-                    <form method="POST" action="/applications/{{ application.id }}/delete" style="display:inline">
-                        <button type="submit">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5">No job applications yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% block title %}Alumni - Job Applications{% endblock %}
 
-    <h2>Apply to a job</h2>
-    <form method="POST" action="/applications">
-        <label>User id: <input type="number" name="user_id"></label><br>
-        <label>Job posting id: <input type="number" name="job_posting_id"></label><br>
-        <label>Applied date: <input type="text" name="applied_date" placeholder="YYYY-MM-DD"></label><br>
-        <button type="submit">Apply</button>
-    </form>
+{% block content %}
+<h1>Job Applications</h1>
 
-    <p><a href="/job-postings">View job postings</a></p>
-</body>
-</html>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>User ID</th>
+            <th>Job Posting ID</th>
+            <th>Applied Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for application in applications %}
+        <tr>
+            <td>{{ application.id }}</td>
+            <td>{{ application.user_id }}</td>
+            <td>{{ application.job_posting_id }}</td>
+            <td>{{ application.applied_date }}</td>
+            <td>
+                <form method="POST" action="/applications/{{ application.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-small">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">No job applications yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Apply to a job</h2>
+<form method="POST" action="/applications">
+    <label>User id: <input type="number" name="user_id"></label>
+    <label>Job posting id: <input type="number" name="job_posting_id"></label>
+    <label>Applied date: <input type="text" name="applied_date" placeholder="YYYY-MM-DD"></label>
+    <button type="submit" class="btn">Apply</button>
+</form>
+
+<p><a href="/job-postings">View job postings</a></p>
+{% endblock %}

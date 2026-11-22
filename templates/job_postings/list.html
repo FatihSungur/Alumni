@@ -1,63 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Alumni - Job Postings</title>
-</head>
-<body>
-    <h1>Job Postings</h1>
+{% extends "base.html" %}
 
-    {% if error %}
-    <p style="color: red;">{{ error }}</p>
-    {% endif %}
+{% block title %}Alumni - Job Postings{% endblock %}
 
-    <table border="1" cellpadding="6">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Company</th>
-                <th>Location</th>
-                <th>Posted By (user id)</th>
-                <th>Posted Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for job_posting in job_postings %}
-            <tr>
-                <td>{{ job_posting.id }}</td>
-                <td>{{ job_posting.title }}</td>
-                <td>{{ job_posting.company }}</td>
-                <td>{{ job_posting.location }}</td>
-                <td>{{ job_posting.posted_by }}</td>
-                <td>{{ job_posting.posted_date }}</td>
-                <td>
-                    <a href="/job-postings/{{ job_posting.id }}/edit">Edit</a>
-                    <form method="POST" action="/job-postings/{{ job_posting.id }}/delete" style="display:inline">
-                        <button type="submit">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7">No job postings yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+{% block content %}
+<h1>Job Postings</h1>
 
-    <h2>Add a new job posting</h2>
-    <form method="POST" action="/job-postings">
-        <label>Title: <input type="text" name="title"></label><br>
-        <label>Company: <input type="text" name="company"></label><br>
-        <label>Description: <input type="text" name="description"></label><br>
-        <label>Location: <input type="text" name="location"></label><br>
-        <label>Posted by (user id): <input type="number" name="posted_by"></label><br>
-        <label>Posted date: <input type="text" name="posted_date" placeholder="YYYY-MM-DD"></label><br>
-        <button type="submit">Create</button>
-    </form>
+{% if error %}
+<p class="form-error">{{ error }}</p>
+{% endif %}
 
-    <p><a href="/applications">View job applications</a></p>
-</body>
-</html>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Location</th>
+            <th>Posted By (user id)</th>
+            <th>Posted Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job_posting in job_postings %}
+        <tr>
+            <td>{{ job_posting.id }}</td>
+            <td>{{ job_posting.title }}</td>
+            <td>{{ job_posting.company }}</td>
+            <td>{{ job_posting.location }}</td>
+            <td>{{ job_posting.posted_by }}</td>
+            <td>{{ job_posting.posted_date }}</td>
+            <td>
+                <a href="/job-postings/{{ job_posting.id }}/edit">Edit</a>
+                <form method="POST" action="/job-postings/{{ job_posting.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-small">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No job postings yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2>Add a new job posting</h2>
+<form method="POST" action="/job-postings">
+    <label>Title: <input type="text" name="title"></label>
+    <label>Company: <input type="text" name="company"></label>
+    <label>Description: <input type="text" name="description"></label>
+    <label>Location: <input type="text" name="location"></label>
+    <label>Posted by (user id): <input type="number" name="posted_by"></label>
+    <label>Posted date: <input type="text" name="posted_date" placeholder="YYYY-MM-DD"></label>
+    <button type="submit" class="btn">Create</button>
+</form>
+
+<p><a href="/applications">View job applications</a></p>
+{% endblock %}

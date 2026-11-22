@@ -1,20 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Alumni - Edit User</title>
-</head>
-<body>
-    <h1>Edit User #{{ user.id }}</h1>
+{% extends "base.html" %}
 
-    <form method="POST" action="/users/{{ user.id }}/edit">
-        <label>First name: <input type="text" name="first_name" value="{{ user.first_name }}"></label><br>
-        <label>Last name: <input type="text" name="last_name" value="{{ user.last_name }}"></label><br>
-        <label>Graduation year: <input type="text" name="graduation_year" value="{{ user.graduation_year }}"></label><br>
-        <label>Email: <input type="text" name="email" value="{{ user.email }}"></label><br>
-        <button type="submit">Save</button>
-    </form>
+{% block title %}Alumni - Edit User{% endblock %}
 
-    <p><a href="/users">Back to list</a></p>
-</body>
-</html>
+{% block content %}
+<h1>Edit User #{{ user.id }}</h1>
+
+<form method="POST" action="/users/{{ user.id }}/edit">
+    <label>First name: <input type="text" name="first_name" value="{{ user.first_name }}"></label>
+    <label>Last name: <input type="text" name="last_name" value="{{ user.last_name }}"></label>
+    <label>Graduation year: <input type="text" name="graduation_year" value="{{ user.graduation_year }}"></label>
+    <label>Email: <input type="text" name="email" value="{{ user.email }}"></label>
+    <button type="submit" class="btn">Save</button>
+</form>
+
+<p><a href="/users">Back to list</a></p>
+{% endblock %}

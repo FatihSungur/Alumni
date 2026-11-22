@@ -57,6 +57,11 @@ a:hover {
     padding: 0 var(--space-lg);
 }
 
+main.container {
+    padding-top: var(--space-xl);
+    padding-bottom: var(--space-xl);
+}
+
 /* Nav */
 
 .site-nav {
@@ -150,6 +155,66 @@ a:hover {
 .btn:hover {
     background: var(--color-accent-dark);
     color: #ffffff;
+}
+
+.btn-small {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.875rem;
+}
+
+/* Tables */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    margin-bottom: var(--space-lg);
+}
+
+th {
+    background: var(--color-primary);
+    color: #ffffff;
+    font-family: var(--font-family-heading);
+    font-weight: 600;
+    text-align: left;
+    padding: var(--space-sm) var(--space-md);
+}
+
+td {
+    padding: var(--space-sm) var(--space-md);
+    border-top: 1px solid var(--color-border);
+}
+
+/* Forms */
+
+form {
+    margin-bottom: var(--space-lg);
+}
+
+form label {
+    display: block;
+    margin-bottom: var(--space-sm);
+}
+
+input[type="text"],
+input[type="number"],
+input[type="email"] {
+    display: block;
+    margin-top: var(--space-xs);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    width: 100%;
+    max-width: 320px;
+}
+
+.form-error {
+    color: var(--color-accent);
+    font-family: var(--font-family-elegant);
+    font-weight: 600;
 }
 
 /* Hero (homepage) */
