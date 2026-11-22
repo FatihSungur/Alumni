@@ -2,11 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Alumni - Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Poppins:wght@600;700&family=Shrikhand&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Alumni Web Programming</h1>
-    <p>This is a temporary main page.</p>
-    <p><a href="/about">About</a></p>
+    <nav class="site-nav">
+        <div class="container">
+            <a class="logo" href="/">
+                <svg class="logo-sun" viewBox="-25 -20 150 90" aria-hidden="true">
+                    <path d="
+                        M10,50
+                        L10,38
+                        L13.5,25.4
+                        Q15.5,18.2 15,20
+                        Q14.1,18.2 17.6,25.4
+                        L23.75,38
+                        L29.9,18.4
+                        Q33.4,7.2 32.5,10
+                        Q31.6,7.2 35.1,18.4
+                        L41.25,38
+                        L47.4,10
+                        Q50.9,-6 50,-2
+                        Q49.1,-6 52.6,10
+                        L58.75,38
+                        L64.9,18.4
+                        Q68.4,7.2 67.5,10
+                        Q66.6,7.2 70.1,18.4
+                        L76.25,38
+                        L82.4,25.4
+                        Q85.9,18.2 85,20
+                        Q84.5,18.2 86.5,25.4
+                        L90,38
+                        L90,50
+                        Z" />
+                    <circle cx="15" cy="17" r="6" />
+                    <circle cx="32.5" cy="7" r="6" />
+                    <circle cx="50" cy="-5" r="7" />
+                    <circle cx="67.5" cy="7" r="6" />
+                    <circle cx="85" cy="17" r="6" />
+                </svg>
+                <span class="logo-text">Alumni</span>
+            </a>
+            <ul>
+                <li><a href="/users">Alumni Directory</a></li>
+                <li><a href="/announcements">Announcements</a></li>
+                <li><a href="/job-postings">Job Postings</a></li>
+                <li><a href="/applications">Applications</a></li>
+                <li><a href="/about">About</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <h1>Stay connected, long after graduation.</h1>
+            <hr class="gold-divider">
+            <p>Alumni keeps graduates and their alma mater in touch — track careers, share opportunities, and find out what the program's community is up to.</p>
+            <a class="btn" href="/users">Browse the directory</a>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>Directory</h3>
+                    <p>Browse alumni profiles and graduation years.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Job Postings</h3>
+                    <p>See opportunities shared by fellow alumni and apply directly.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Announcements</h3>
+                    <p>Catch up on news and updates from the program.</p>
+                </div>
+            </div>
+        </section>
+    </main>
 </body>
 </html>
