@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Register{% endblock %}
+
+{% block content %}
+<h1>Create an account</h1>
+
+{% if error %}
+<p class="form-error">{{ error }}</p>
+{% endif %}
+
+<form method="POST" action="/register">
+    <label>First name: <input type="text" name="first_name"></label>
+    <label>Last name: <input type="text" name="last_name"></label>
+    <label>Email: <input type="email" name="email"></label>
+    <label>Password: <input type="password" name="password"></label>
+    <label>I am a:
+        <select name="role">
+            <option value="alumni">Alumni (graduate)</option>
+            <option value="student">Student (not yet graduated)</option>
+        </select>
+    </label>
+    <label>Graduation year (actual if you're an alumni, expected if you're a student):
+        <input type="number" name="graduation_year">
+    </label>
+    <button type="submit" class="btn">Register</button>
+</form>
+{% endblock %}

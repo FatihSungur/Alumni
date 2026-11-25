@@ -43,7 +43,8 @@ Alumni-Web-Programming/
 │   ├── api_job_posting_controller.py   # Controller: JSON API for /api/job-postings (direct + nested /applications)
 │   ├── api_job_application_controller.py # Controller: JSON API for /api/applications (direct routes only)
 │   ├── job_posting_controller.py       # Controller: HTML pages for /job-postings (list, create, edit, delete)
-│   └── job_application_controller.py   # Controller: HTML pages for /applications (list, apply, delete)
+│   ├── job_application_controller.py   # Controller: HTML pages for /applications (list, apply, delete)
+│   └── auth_controller.py              # Controller: HTML pages for /register (account creation)
 ├── middleware/
 │   ├── __init__.py
 │   ├── logger.py                       # Request logger: logs method/path/status/duration for every request
@@ -54,6 +55,8 @@ Alumni-Web-Programming/
 │   ├── index.html
 │   ├── about.html
 │   ├── 404.html                        # Generic "page not found" page, shown by the 404 guardian
+│   ├── register.html                   # Account creation form (role: alumni or student)
+│   ├── login.html                      # Login form
 │   ├── users/
 │   │   ├── list.html                   # Lists all users + a form to create a new one
 │   │   └── edit.html                   # Pre-filled form to edit a single user
@@ -67,7 +70,8 @@ Alumni-Web-Programming/
 │       └── list.html                   # Lists all applications + a form to apply to a job
 ├── migrations/
 │   ├── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
-│   └── 002_create_job_postings_and_applications.sql # Creates `job_postings` + `job_applications`
+│   ├── 002_create_job_postings_and_applications.sql # Creates `job_postings` + `job_applications`
+│   └── 003_add_user_roles_and_auth.sql  # Adds `role` and `password_hash` to `users` (see DDD.md)
 ├── factories/
 │   ├── __init__.py
 │   ├── user_factory.py                 # Generates realistic fake user data (via Faker)
@@ -99,6 +103,12 @@ First, create your local `.env` file from the provided example (this holds datab
 
 ```bash
 cp .env.example .env
+```
+
+Fill in `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`/`DATABASE_URL` as usual, and generate a `SECRET_KEY` (used to sign login sessions — without it, `/login` and `/register` raise an error):
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(24))"
 ```
 
 Then run:
@@ -139,6 +149,11 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | GET    | `/hello/<name>`               | Returns `Hello, <name>!`              |
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
+| GET    | `/register`                   | HTML registration form (role: alumni or student) |
+| POST   | `/register`                   | Creates an account (hashes the password) and redirects home; redirects back with `?error=...` on invalid data or a duplicate email (see DDD.md) |
+| GET    | `/login`                      | HTML login form |
+| POST   | `/login`                      | Verifies email/password and starts a session; redirects back with `?error=...` on failure |
+| POST   | `/logout`                     | Clears the session and redirects home |
 | GET    | `/users`                      | HTML page listing alumni, with a form to create a new one (UserController) |
 | POST   | `/users`                      | Creates an alumni record from the HTML form and redirects back to the list |
 | GET    | `/users/<id>/edit`            | HTML form pre-filled with the record's current data |

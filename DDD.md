@@ -23,6 +23,8 @@ Backs the `User` model (`models/user.py`). Represents one alumni record.
 | `last_name`       | `VARCHAR(100)` | `NOT NULL`                   |                                           |
 | `graduation_year` | `INTEGER`      | `NOT NULL`                   |                                           |
 | `email`           | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`         | Two alumni records should not share an email |
+| `role`            | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'alumni'`, `CHECK (role IN ('alumni', 'student'))` | Added in `migrations/003_...sql` — see **User Roles & Permissions** below |
+| `password_hash`   | `VARCHAR(255)` | nullable                     | Added in the same migration. Nullable because seeded/demo users (created via `User.create`, not `User.register`) have no login credentials — only accounts created through `/register` get one |
 
 ```sql
 CREATE TABLE users (
@@ -32,6 +34,11 @@ CREATE TABLE users (
     graduation_year INTEGER NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE
 );
+
+-- migrations/003_add_user_roles_and_auth.sql
+ALTER TABLE users
+    ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'alumni' CHECK (role IN ('alumni', 'student')),
+    ADD COLUMN password_hash VARCHAR(255);
 ```
 
 ### Table: `announcements`
@@ -217,3 +224,38 @@ Without validation, bad input (e.g. a job posting with no title) either silently
 If `validate(...)` returns any errors, the request never reaches `JobPosting.create(...)`:
 - `api_job_posting_controller.py` returns `400 {"error": "..."}` (JSON) — the client sent invalid data, so `400 Bad Request` is the correct status, distinct from `404` (resource doesn't exist) or `500` (our own bug).
 - `job_posting_controller.py` (the HTML form) redirects back to `/job-postings` with the error message in a query parameter, which `templates/job_postings/list.html` displays above the table — the Post-Redirect-Get pattern, same as every other create/edit flow in this app, just carrying the failure reason along with it.
+
+## User Roles & Permissions
+
+Two concepts that are easy to conflate:
+- **Authentication** ("who are you?") — verifying an identity, typically via email + password. Implemented today via `password_hash` on `users` (hashed with `werkzeug.security.generate_password_hash`, never stored or returned in plain text).
+- **Authorization** ("are you allowed to do this?") — once identified, deciding what that identity can access. This is driven by the new `role` column.
+
+**Roles:** every registered account is either `alumni` or `student` (see the `CHECK` constraint above). A third "role", **guest**, is not a value in this column at all — it means *no account*, i.e. an unauthenticated visitor. There is no database row for a guest.
+
+**Intended permissions** (the table below is the *design*; only registration itself is implemented so far — enforcing these rules on each route, which requires a login/session system, is a follow-up task):
+
+| Action | Guest | Student | Alumni |
+|---|:---:|:---:|:---:|
+| View announcements | ✅ | ✅ | ✅ |
+| View job postings | ✅ | ✅ | ✅ |
+| View the alumni directory | ❌ | ✅ | ✅ |
+| Apply to a job posting | ❌ | ✅ | ✅ |
+| Create a job posting | ❌ | ❌ | ✅ |
+| Register an account | ✅ → becomes Student or Alumni | — | — |
+
+The reasoning: job postings represent an alumnus sharing an opportunity from their own career, so only `alumni` can create one; both roles can still apply to one. Everything read-only (announcements, job postings) stays open to guests, since there's no reason to gate information with no side effects.
+
+**Registration** (`POST /register`, `controllers/auth_controller.py`): validated by `User.validate_registration(...)` (all fields required, `role` must be `alumni`/`student`, password at least 6 characters), then `User.register(...)` hashes the password and inserts the row. A duplicate email hits the same `UNIQUE` constraint as before — caught as `psycopg2.errors.UniqueViolation` and surfaced as a friendly redirect-with-reason, the same pattern used for job posting validation and duplicate job applications.
+
+### Login & logout (session-based authentication)
+
+The whiteboard's Client/Server diagram was token-based auth in the abstract; the concrete implementation here is Flask's built-in **session**, which is really the same idea: the server gives the client a token after login, the client sends it back automatically on every later request, and the server reads the identity from it instead of asking for a password again.
+
+- `app.secret_key` (`app.py`, from the `SECRET_KEY` env var) signs the session cookie. Without it, Flask raises `RuntimeError: The session is unavailable...` the moment any route tries to write to `session` — caught live by our own 5xx guardian during testing, logged to `logs/error.log` with the full traceback, while the client only saw the generic error message. A nice real confirmation that last week's guardian actually works end to end.
+- **`POST /login`** (`controllers/auth_controller.py`): looks the user up by email (`User.get_by_email`, the only query that selects `password_hash`), checks the password with `User.verify_password` (`werkzeug.security.check_password_hash`), and on success stores `user_id`, `first_name`, `role` in `session`. On failure — wrong password *or* email that doesn't exist — the same generic `"Invalid email or password"` is shown; never revealing which one was wrong is a basic security habit (an attacker shouldn't be able to use the error message to enumerate real emails).
+- **`POST /logout`**: `session.clear()`, redirect home.
+- `templates/base.html` reads `session.user_id` directly (Flask injects `session` into every template automatically) to swap the nav between "Login/Register" and "Hi, {name} ({role})" + a Logout button.
+- Flask's default session cookie is **signed, not encrypted** — its contents (`user_id`/`first_name`/`role`) are base64-readable by anyone who inspects the cookie, just not forgeable without `SECRET_KEY`. Fine here since nothing sensitive (like the password) is stored in it.
+
+**Not yet implemented:** the permissions table above is the target design, but no route currently checks `session.role` before allowing an action (e.g. `/job-postings` still accepts a POST from anyone, logged in or not). Enforcing that is the natural next step once login exists, which is exactly the order these three tasks were assigned in.

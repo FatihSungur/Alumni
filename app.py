@@ -1,3 +1,5 @@
+import os
+
 from flasgger import Swagger
 from flask import Flask, jsonify, render_template
 
@@ -6,6 +8,7 @@ from controllers.api_announcement_controller import api_announcement_bp
 from controllers.api_job_application_controller import api_job_application_bp
 from controllers.api_job_posting_controller import api_job_posting_bp
 from controllers.api_user_controller import api_user_bp
+from controllers.auth_controller import auth_bp
 from controllers.job_application_controller import job_application_bp
 from controllers.job_posting_controller import job_posting_bp
 from controllers.user_controller import user_bp
@@ -13,6 +16,10 @@ from middleware.error_handlers import register_error_handlers
 from middleware.logger import register_request_logger
 
 app = Flask(__name__)
+
+# Signs the login session cookie (see controllers/auth_controller.py) — without
+# this, Flask refuses to use `session` at all.
+app.secret_key = os.environ.get("SECRET_KEY")
 
 # In debug mode, Flask/Werkzeug normally shows its own interactive debugger for
 # unhandled exceptions instead of calling our error handlers below. Disabling
@@ -46,6 +53,7 @@ app.register_blueprint(api_job_posting_bp)
 app.register_blueprint(api_job_application_bp)
 app.register_blueprint(job_posting_bp)
 app.register_blueprint(job_application_bp)
+app.register_blueprint(auth_bp)
 
 register_request_logger(app)
 register_error_handlers(app)

@@ -1,9 +1,73 @@
+import psycopg2
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from models.db import get_connection
 
-COLUMNS = "id, first_name, last_name, graduation_year, email"
+COLUMNS = "id, first_name, last_name, graduation_year, email, role"
+ROLES = ("alumni", "student")
 
 
 class User:
+    @staticmethod
+    def get_by_email(email):
+        """Includes password_hash — unlike COLUMNS, only for internal use by login."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"SELECT {COLUMNS}, password_hash FROM users WHERE email = %s", (email,)
+        )
+        user = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        return user
+
+    @staticmethod
+    def verify_password(user, password):
+        if user is None or not user["password_hash"]:
+            return False
+        return check_password_hash(user["password_hash"], password)
+
+    @staticmethod
+    def validate_registration(first_name, last_name, email, graduation_year, role, password):
+        errors = []
+        if not first_name:
+            errors.append("first name required")
+        if not last_name:
+            errors.append("last name required")
+        if not email:
+            errors.append("email required")
+        if not graduation_year:
+            errors.append("graduation year required")
+        if role not in ROLES:
+            errors.append("role must be alumni or student")
+        if not password or len(password) < 6:
+            errors.append("password must be at least 6 characters")
+        return errors
+
+    @staticmethod
+    def register(first_name, last_name, graduation_year, email, role, password):
+        password_hash = generate_password_hash(password)
+        connection = get_connection()
+        cursor = connection.cursor()
+        try:
+            cursor.execute(
+                f"""
+                INSERT INTO users (first_name, last_name, graduation_year, email, role, password_hash)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING {COLUMNS}
+                """,
+                (first_name, last_name, graduation_year, email, role, password_hash),
+            )
+            user = cursor.fetchone()
+            connection.commit()
+        except psycopg2.errors.UniqueViolation:
+            connection.rollback()
+            user = None
+        finally:
+            cursor.close()
+            connection.close()
+        return user
+
     @staticmethod
     def create(first_name, last_name, graduation_year, email):
         connection = get_connection()
