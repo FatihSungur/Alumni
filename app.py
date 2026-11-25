@@ -3,6 +3,7 @@ import os
 from flasgger import Swagger
 from flask import Flask, jsonify, render_template
 
+from controllers.admin_controller import admin_bp
 from controllers.announcement_controller import announcement_bp
 from controllers.api_announcement_controller import api_announcement_bp
 from controllers.api_job_application_controller import api_job_application_bp
@@ -54,6 +55,7 @@ app.register_blueprint(api_job_application_bp)
 app.register_blueprint(job_posting_bp)
 app.register_blueprint(job_application_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
 
 register_request_logger(app)
 register_error_handlers(app)

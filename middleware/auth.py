@@ -70,3 +70,4 @@ def role_required(*allowed_roles):
 
 
 staff_required = role_required(*STAFF_ROLES)
+admin_required = role_required("admin")

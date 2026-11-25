@@ -44,7 +44,8 @@ Alumni-Web-Programming/
 │   ├── api_job_application_controller.py # Controller: JSON API for /api/applications (direct routes only)
 │   ├── job_posting_controller.py       # Controller: HTML pages for /job-postings (list, create, edit, delete)
 │   ├── job_application_controller.py   # Controller: HTML pages for /applications (list, apply, delete)
-│   └── auth_controller.py              # Controller: HTML pages for /register (account creation)
+│   ├── auth_controller.py              # Controller: HTML pages for /register, /login, /logout
+│   └── admin_controller.py             # Controller: HTML admin panel (/admin) — dashboard + role management, admin-only
 ├── middleware/
 │   ├── __init__.py
 │   ├── logger.py                       # Request logger: logs method/path/status/duration for every request
@@ -60,6 +61,10 @@ Alumni-Web-Programming/
 │   ├── 500.html                        # Generic "something went wrong" page, shown by the 5xx guardian
 │   ├── register.html                   # Account creation form (role: alumni or student)
 │   ├── login.html                      # Login form
+│   ├── admin/
+│   │   ├── dashboard.html               # Admin panel home: record counts + links
+│   │   ├── users.html                   # Every user with their role/staff_role
+│   │   └── edit_role.html               # Form to change a user's role/staff_role
 │   ├── users/
 │   │   ├── list.html                   # Lists all users + a form to create a new one
 │   │   └── edit.html                   # Pre-filled form to edit a single user
@@ -146,7 +151,7 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 
 ## API Endpoints
 
-> **Auth guardian:** routes marked 🔒 require a login session, and 🔒staff require `admin`/`moderator`. A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role on either returns `403`. See [DDD.md](./DDD.md#auth-guardian-middlewareauthpy) for the full permissions table.
+> **Auth guardian:** routes marked 🔒 require a login session, 🔒staff require `admin`/`moderator`, and 🔒admin require `admin` specifically (a moderator can't grant staff roles to others). A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role on any of them returns `403`. See [DDD.md](./DDD.md#auth-guardian-middlewareauthpy) for the full permissions table.
 
 | Method | Path                          | Description                          |
 |--------|-------------------------------|---------------------------------------|
@@ -197,6 +202,10 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | GET    | `/api/users/<id>/job-postings` | Nested route: list every job posting created by this user (one-to-many) |
 | GET    | `/api/users/<id>/applications` | Nested route: list every job this user applied to (many-to-many) |
 | GET    | `/api/swagger`                | Interactive Swagger UI (powered by [flasgger](https://github.com/flasgger/flasgger)) listing every documented route |
+| GET    | 🔒admin `/admin`              | Admin panel home: record counts + links to manage each entity |
+| GET    | 🔒admin `/admin/users`        | Every user with their `role`/`staff_role` visible |
+| GET    | 🔒admin `/admin/users/<id>/role` | Form to change a user's role/staff role |
+| POST   | 🔒admin `/admin/users/<id>/role` | Saves the role change; redirects back with `?error=...` on invalid input |
 
 > **Project rule:** `/api/swagger` is generated dynamically from the docstrings on each route, so it always reflects the current endpoints automatically. Whenever a new endpoint is added, give it a short YAML docstring (see the existing routes for examples) so it shows up in Swagger — then just visit `/api/swagger` in a browser to confirm it picked it up.
 

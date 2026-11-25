@@ -70,6 +70,36 @@ class User:
         return user
 
     @staticmethod
+    def validate_roles(role, staff_role):
+        errors = []
+        if role not in ROLES:
+            errors.append("role must be alumni or student")
+        if staff_role and staff_role not in STAFF_ROLES:
+            errors.append("staff role must be empty, admin, or moderator")
+        return errors
+
+    @staticmethod
+    def set_roles(user_id, role, staff_role):
+        """Admin-only: change a user's base role and/or staff role. staff_role
+        may be None (removes admin/moderator privileges)."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"""
+            UPDATE users
+            SET role = %s, staff_role = %s
+            WHERE id = %s
+            RETURNING {COLUMNS}
+            """,
+            (role, staff_role, user_id),
+        )
+        user = cursor.fetchone()
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return user
+
+    @staticmethod
     def create(first_name, last_name, graduation_year, email):
         connection = get_connection()
         cursor = connection.cursor()

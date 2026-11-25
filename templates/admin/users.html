@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Manage Users{% endblock %}
+
+{% block content %}
+<h1>Manage Users</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Staff Role</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.first_name }} {{ user.last_name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.role }}</td>
+            <td>{{ user.staff_role or "—" }}</td>
+            <td><a href="/admin/users/{{ user.id }}/role">Edit role</a></td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6">No users yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/admin">Back to admin panel</a></p>
+{% endblock %}

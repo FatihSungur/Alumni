@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Edit Role{% endblock %}
+
+{% block content %}
+<h1>Edit Role: {{ user.first_name }} {{ user.last_name }}</h1>
+
+{% if error %}
+<p class="form-error">{{ error }}</p>
+{% endif %}
+
+<form method="POST" action="/admin/users/{{ user.id }}/role">
+    <label>Role:
+        <select name="role">
+            {% for role in roles %}
+            <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Staff role:
+        <select name="staff_role">
+            <option value="" {% if not user.staff_role %}selected{% endif %}>None</option>
+            {% for staff_role in staff_roles %}
+            <option value="{{ staff_role }}" {% if user.staff_role == staff_role %}selected{% endif %}>{{ staff_role }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit" class="btn">Save</button>
+</form>
+
+<p><a href="/admin/users">Back to user list</a></p>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Admin Panel{% endblock %}
+
+{% block content %}
+<h1>Admin Panel</h1>
+
+<div class="feature-grid">
+    <div class="feature-card">
+        <h3>Users</h3>
+        <p>{{ user_count }} total</p>
+        <a href="/admin/users">Manage roles</a> &middot; <a href="/users">View directory</a>
+    </div>
+    <div class="feature-card">
+        <h3>Announcements</h3>
+        <p>{{ announcement_count }} total</p>
+        <a href="/announcements">Manage</a>
+    </div>
+    <div class="feature-card">
+        <h3>Job Postings</h3>
+        <p>{{ job_posting_count }} total</p>
+        <a href="/job-postings">Manage</a>
+    </div>
+    <div class="feature-card">
+        <h3>Applications</h3>
+        <p>{{ application_count }} total</p>
+        <a href="/applications">Manage</a>
+    </div>
+</div>
+{% endblock %}
