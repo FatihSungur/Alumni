@@ -1,5 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
+from middleware.auth import require_role, staff_required
 from models.job_posting import JobPosting
 
 job_posting_bp = Blueprint("job_posting", __name__, url_prefix="/job-postings")
@@ -36,8 +37,14 @@ def job_postings_collection():
         description: HTML page listing job postings
       302:
         description: Redirect back to the list after creating a job posting, or back with an error if the data is invalid
+      403:
+        description: Logged in but not an alumnus (only alumni can create job postings)
     """
     if request.method == "POST":
+        guard = require_role("alumni")
+        if guard:
+            return guard
+
         errors = JobPosting.validate(request.form.get("title"), request.form.get("company"))
         if errors:
             return redirect(url_for("job_posting.job_postings_collection", error=", ".join(errors)))
@@ -113,9 +120,10 @@ def edit_job_posting(job_posting_id):
 
 
 @job_posting_bp.route("/<int:job_posting_id>/delete", methods=["POST"])
+@staff_required
 def delete_job_posting(job_posting_id):
     """
-    Delete a job posting.
+    Delete a job posting. Requires an admin or moderator session.
     ---
     tags:
       - JobPostingController
@@ -127,6 +135,8 @@ def delete_job_posting(job_posting_id):
     responses:
       302:
         description: Redirect back to the list after deleting
+      403:
+        description: Logged in but not staff (admin/moderator)
       404:
         description: Job posting not found
     """

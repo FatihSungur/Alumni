@@ -92,6 +92,7 @@ def login():
         session["user_id"] = user["id"]
         session["first_name"] = user["first_name"]
         session["role"] = user["role"]
+        session["staff_role"] = user["staff_role"]
         return redirect(url_for("index"))
 
     return render_template("login.html", error=request.args.get("error"))

@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from middleware.auth import STAFF_ROLES, require_role_api
 from models.job_application import JobApplication
 from models.job_posting import JobPosting
 
@@ -39,8 +40,16 @@ def job_postings_collection():
         description: Created job posting
       400:
         description: Invalid job posting data (see error message)
+      401:
+        description: Login required (POST only)
+      403:
+        description: Logged in but not an alumnus (POST only)
     """
     if request.method == "POST":
+        guard = require_role_api("alumni")
+        if guard:
+            return guard
+
         errors = JobPosting.validate(request.form.get("title"), request.form.get("company"))
         if errors:
             return jsonify(error=", ".join(errors)), 400
@@ -88,9 +97,18 @@ def job_posting_item(job_posting_id):
     responses:
       200:
         description: The job posting (or the updated/deleted version)
+      401:
+        description: Login required (DELETE only)
+      403:
+        description: Logged in but not staff (DELETE only)
       404:
         description: Job posting not found
     """
+    if request.method == "DELETE":
+        guard = require_role_api(*STAFF_ROLES)
+        if guard:
+            return guard
+
     job_posting = JobPosting.get_by_id(job_posting_id)
     if job_posting is None:
         return jsonify(error="Job posting not found"), 404
@@ -147,6 +165,8 @@ def job_posting_applications(job_posting_id):
         description: List of applicants for this job posting
       201:
         description: Created application
+      401:
+        description: Login required (POST only)
       404:
         description: Job posting not found
       409:
@@ -157,6 +177,10 @@ def job_posting_applications(job_posting_id):
         return jsonify(error="Job posting not found"), 404
 
     if request.method == "POST":
+        guard = require_role_api()
+        if guard:
+            return guard
+
         application = JobApplication.create(
             request.form.get("user_id"),
             job_posting_id,

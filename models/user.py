@@ -3,8 +3,9 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from models.db import get_connection
 
-COLUMNS = "id, first_name, last_name, graduation_year, email, role"
+COLUMNS = "id, first_name, last_name, graduation_year, email, role, staff_role"
 ROLES = ("alumni", "student")
+STAFF_ROLES = ("admin", "moderator")
 
 
 class User:

@@ -1,11 +1,13 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
+from middleware.auth import login_required, staff_required
 from models.user import User
 
 user_bp = Blueprint("user", __name__, url_prefix="/users")
 
 
 @user_bp.route("", methods=["GET", "POST"])
+@login_required
 def users_collection():
     """
     List all alumni records as an HTML page, or create a new one from a form.
@@ -93,9 +95,10 @@ def edit_user(user_id):
 
 
 @user_bp.route("/<int:user_id>/delete", methods=["POST"])
+@staff_required
 def delete_user(user_id):
     """
-    Delete an alumni record.
+    Delete an alumni record. Requires an admin or moderator session.
     ---
     tags:
       - UserController
@@ -107,6 +110,8 @@ def delete_user(user_id):
     responses:
       302:
         description: Redirect back to the list after deleting
+      403:
+        description: Logged in but not staff (admin/moderator)
       404:
         description: User not found
     """

@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from middleware.auth import STAFF_ROLES, require_role_api
 from models.job_application import JobApplication
 
 api_job_application_bp = Blueprint(
@@ -36,9 +37,18 @@ def application_item(application_id):
     responses:
       200:
         description: The application (or the deleted version)
+      401:
+        description: Login required (DELETE only)
+      403:
+        description: Logged in but not staff (DELETE only)
       404:
         description: Application not found
     """
+    if request.method == "DELETE":
+        guard = require_role_api(*STAFF_ROLES)
+        if guard:
+            return guard
+
     application = JobApplication.get_by_id(application_id)
     if application is None:
         return jsonify(error="Application not found"), 404

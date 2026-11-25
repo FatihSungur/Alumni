@@ -231,20 +231,31 @@ Two concepts that are easy to conflate:
 - **Authentication** ("who are you?") — verifying an identity, typically via email + password. Implemented today via `password_hash` on `users` (hashed with `werkzeug.security.generate_password_hash`, never stored or returned in plain text).
 - **Authorization** ("are you allowed to do this?") — once identified, deciding what that identity can access. This is driven by the new `role` column.
 
-**Roles:** every registered account is either `alumni` or `student` (see the `CHECK` constraint above). A third "role", **guest**, is not a value in this column at all — it means *no account*, i.e. an unauthenticated visitor. There is no database row for a guest.
+**Roles:** every registered account has exactly one *base* role, `alumni` or `student` (the `CHECK` constraint above), chosen by the user at registration. A third "role", **guest**, is not a value in this column at all — it means *no account*, i.e. an unauthenticated visitor. There is no database row for a guest.
 
-**Intended permissions** (the table below is the *design*; only registration itself is implemented so far — enforcing these rules on each route, which requires a login/session system, is a follow-up task):
+**Staff roles (`staff_role`):** separate from the base role, and orthogonal to it — a user is *always* alumni-or-student *and optionally also* `admin` or `moderator` at the same time (e.g. an alumnus who also moderates). This is why it's its own nullable column (`migrations/004_add_staff_roles.sql`) rather than another value crammed into `role`: `role` answers "what kind of member are they", `staff_role` answers "do they also have elevated privileges". `NULL` (the default) means no elevated privileges. **Nothing in the app ever lets a user set their own `staff_role`** — the register form only offers `alumni`/`student` (see `templates/register.html`); granting `admin`/`moderator` today means a direct SQL `UPDATE`, e.g.:
 
-| Action | Guest | Student | Alumni |
-|---|:---:|:---:|:---:|
-| View announcements | ✅ | ✅ | ✅ |
-| View job postings | ✅ | ✅ | ✅ |
-| View the alumni directory | ❌ | ✅ | ✅ |
-| Apply to a job posting | ❌ | ✅ | ✅ |
-| Create a job posting | ❌ | ❌ | ✅ |
-| Register an account | ✅ → becomes Student or Alumni | — | — |
+```sql
+UPDATE users SET staff_role = 'admin' WHERE email = '...';
+```
 
-The reasoning: job postings represent an alumnus sharing an opportunity from their own career, so only `alumni` can create one; both roles can still apply to one. Everything read-only (announcements, job postings) stays open to guests, since there's no reason to gate information with no side effects.
+An admin UI to manage this is a natural future task, not built yet.
+
+**Permissions** (now enforced — see "Auth guardian" below):
+
+| Action | Guest | Student | Alumni | Moderator | Admin |
+|---|:---:|:---:|:---:|:---:|:---:|
+| View announcements | ✅ | ✅ | ✅ | ✅ | ✅ |
+| View job postings | ✅ | ✅ | ✅ | ✅ | ✅ |
+| View the alumni directory | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Apply to a job posting | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Create a job posting | ❌ | ❌ | ✅ | ❌* | ❌* |
+| Delete any user / announcement / job posting / application | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Register an account | ✅ → becomes Student or Alumni | — | — | — | — |
+
+\* a moderator/admin who is *also* `alumni` can create one — through the `alumni` role, not the staff role. `staff_role` only ever grants the delete/moderation row.
+
+The reasoning: job postings represent an alumnus sharing an opportunity from their own career, so only the `alumni` role can create one; every logged-in account can apply. Destructive actions (delete) are the one thing that genuinely needs a step up from "any member" to "staff", which is exactly what `admin`/`moderator` are for. Read-only actions (announcements, job postings) stay open to guests, since there's no reason to gate information with no side effects.
 
 **Registration** (`POST /register`, `controllers/auth_controller.py`): validated by `User.validate_registration(...)` (all fields required, `role` must be `alumni`/`student`, password at least 6 characters), then `User.register(...)` hashes the password and inserts the row. A duplicate email hits the same `UNIQUE` constraint as before — caught as `psycopg2.errors.UniqueViolation` and surfaced as a friendly redirect-with-reason, the same pattern used for job posting validation and duplicate job applications.
 
@@ -258,4 +269,19 @@ The whiteboard's Client/Server diagram was token-based auth in the abstract; the
 - `templates/base.html` reads `session.user_id` directly (Flask injects `session` into every template automatically) to swap the nav between "Login/Register" and "Hi, {name} ({role})" + a Logout button.
 - Flask's default session cookie is **signed, not encrypted** — its contents (`user_id`/`first_name`/`role`) are base64-readable by anyone who inspects the cookie, just not forgeable without `SECRET_KEY`. Fine here since nothing sensitive (like the password) is stored in it.
 
-**Not yet implemented:** the permissions table above is the target design, but no route currently checks `session.role` before allowing an action (e.g. `/job-postings` still accepts a POST from anyone, logged in or not). Enforcing that is the natural next step once login exists, which is exactly the order these three tasks were assigned in.
+### Auth guardian (`middleware/auth.py`)
+
+The piece that actually enforces the permissions table above — this is the "authorization" half of the Authentication/Authorization distinction made concrete. Two call styles, because this app's routes are a mix of two shapes:
+
+- **`@login_required` / `@staff_required` (decorators)** — for routes that are *entirely* gated (no public branch at all), e.g. `GET/POST /users` (viewing the directory already requires login, so the whole route can be wrapped) or any single-purpose `POST .../delete` route (`@staff_required`).
+- **`require_role(*roles)` (plain function, called inline)** — for routes that mix a public branch with a protected one, e.g. `GET/POST /job-postings`: the `GET` (viewing postings) must stay open to guests, so only the `POST` branch calls `guard = require_role("alumni"); if guard: return guard` before doing anything. A decorator can't express "only this branch", since it wraps the whole view function.
+
+Both ultimately check `session` the same way: not logged in → **401 isn't used for HTML views on this project** (which have no concept of a non-browser caller) but a redirect to `/login`; logged in with the wrong role → **`403 Forbidden`**.
+
+**`require_role_api(*roles)`** is the same logic for the JSON/API controllers, but returns JSON instead of a browser redirect — redirecting a Postman request to an HTML login page makes no sense for an API client. Here the status codes follow the standard convention precisely:
+- **`401 Unauthorized`** — no session at all ("I don't know who you are").
+- **`403 Forbidden`** — a session exists, but that role isn't allowed to do this ("I know who you are, and the answer is no").
+
+Guarded today: viewing the alumni directory (`/users`, `/api/users`), applying to a job posting, creating a job posting (`alumni` only), and every delete route across users/announcements/job postings/applications (`staff_required`, both HTML and API). Verified live with guest/student/alumni/admin accounts hitting each guarded route — a student gets `403` creating or deleting, a guest gets redirected/`401`, an alumnus can create but not delete, and only an account with `staff_role` set can delete.
+
+**Still open:** editing (as opposed to deleting) a record isn't gated — e.g. any logged-in session can currently edit any job posting, not just its own. Doing that properly needs an *ownership* check (is this job posting's `posted_by` the current session's `user_id`?), which is a different, more granular kind of authorization than the role check here — left for a future task rather than guessed at now.

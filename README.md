@@ -48,7 +48,8 @@ Alumni-Web-Programming/
 ├── middleware/
 │   ├── __init__.py
 │   ├── logger.py                       # Request logger: logs method/path/status/duration for every request
-│   └── error_handlers.py               # 404 guardian (generic 404 page) + 5xx guardian (logs to logs/error.log)
+│   ├── error_handlers.py               # 404 guardian (generic 404 page) + 5xx guardian (logs to logs/error.log)
+│   └── auth.py                         # Auth guardian: login_required/staff_required/require_role(_api) (see DDD.md)
 ├── static/
 │   └── style.css                       # Shared stylesheet: CSS variables for the brand, nav/button/card/table components
 ├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
@@ -71,7 +72,8 @@ Alumni-Web-Programming/
 ├── migrations/
 │   ├── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
 │   ├── 002_create_job_postings_and_applications.sql # Creates `job_postings` + `job_applications`
-│   └── 003_add_user_roles_and_auth.sql  # Adds `role` and `password_hash` to `users` (see DDD.md)
+│   ├── 003_add_user_roles_and_auth.sql  # Adds `role` and `password_hash` to `users` (see DDD.md)
+│   └── 004_add_staff_roles.sql          # Adds `staff_role` ('admin'/'moderator') to `users` (see DDD.md)
 ├── factories/
 │   ├── __init__.py
 │   ├── user_factory.py                 # Generates realistic fake user data (via Faker)
@@ -142,6 +144,8 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 
 ## API Endpoints
 
+> **Auth guardian:** routes marked 🔒 require a login session, and 🔒staff require `admin`/`moderator`. A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role on either returns `403`. See [DDD.md](./DDD.md#auth-guardian-middlewareauthpy) for the full permissions table.
+
 | Method | Path                          | Description                          |
 |--------|-------------------------------|---------------------------------------|
 | GET    | `/`                           | Temporary main page                   |
@@ -154,40 +158,40 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | GET    | `/login`                      | HTML login form |
 | POST   | `/login`                      | Verifies email/password and starts a session; redirects back with `?error=...` on failure |
 | POST   | `/logout`                     | Clears the session and redirects home |
-| GET    | `/users`                      | HTML page listing alumni, with a form to create a new one (UserController) |
-| POST   | `/users`                      | Creates an alumni record from the HTML form and redirects back to the list |
+| GET    | 🔒 `/users`                   | HTML page listing alumni, with a form to create a new one (UserController) |
+| POST   | 🔒 `/users`                   | Creates an alumni record from the HTML form and redirects back to the list |
 | GET    | `/users/<id>/edit`            | HTML form pre-filled with the record's current data |
 | POST   | `/users/<id>/edit`             | Saves the edited record and redirects back to the list |
-| POST   | `/users/<id>/delete`           | Deletes the record and redirects back to the list |
+| POST   | 🔒staff `/users/<id>/delete`  | Deletes the record and redirects back to the list |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
-| POST   | `/api/users`                  | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it (with an auto-generated `id`) as JSON |
-| GET    | `/api/users`                  | Returns all alumni records created so far, as a JSON list |
+| POST   | 🔒 `/api/users`               | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it (with an auto-generated `id`) as JSON |
+| GET    | 🔒 `/api/users`               | Returns all alumni records created so far, as a JSON list |
 | PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
 | PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
-| DELETE | `/api/users/<id>`             | Deletes the record with the given `id` and returns the deleted record as JSON |
+| DELETE | 🔒staff `/api/users/<id>`     | Deletes the record with the given `id` and returns the deleted record as JSON |
 | GET    | `/announcements`              | HTML page listing announcements, with a form to create a new one (AnnouncementController) |
 | POST   | `/announcements`              | Creates an announcement from the HTML form and redirects back to the list |
 | GET    | `/announcements/<id>/edit`    | HTML form pre-filled with the announcement's current data |
 | POST   | `/announcements/<id>/edit`    | Saves the edited announcement and redirects back to the list |
-| POST   | `/announcements/<id>/delete`  | Deletes the announcement and redirects back to the list |
+| POST   | 🔒staff `/announcements/<id>/delete` | Deletes the announcement and redirects back to the list |
 | POST   | `/api/announcements`          | Creates an announcement from form data (`title`, `content`, `date`) and returns it (with an auto-generated `id`) as JSON |
 | GET    | `/api/announcements`          | Returns all announcements created so far, as a JSON list |
 | PUT    | `/api/announcements/<id>`     | Replaces all fields of the announcement with the given `id` and returns it as JSON |
 | PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
-| DELETE | `/api/announcements/<id>`     | Deletes the announcement with the given `id` and returns the deleted record as JSON |
+| DELETE | 🔒staff `/api/announcements/<id>` | Deletes the announcement with the given `id` and returns the deleted record as JSON |
 | GET    | `/job-postings`               | HTML page listing job postings, with a form to create a new one (JobPostingController) |
-| POST   | `/job-postings`               | Creates a job posting from the HTML form and redirects back to the list; redirects back with `?error=...` instead if `title`/`company` fail validation (see DDD.md) |
+| POST   | 🔒 `/job-postings`            | Creates a job posting from the HTML form (`alumni` role only, `403` otherwise) and redirects back to the list; redirects back with `?error=...` instead if `title`/`company` fail validation (see DDD.md) |
 | GET    | `/job-postings/<id>/edit`     | HTML form pre-filled with the job posting's current data |
 | POST   | `/job-postings/<id>/edit`     | Saves the edited job posting and redirects back to the list |
-| POST   | `/job-postings/<id>/delete`   | Deletes the job posting and redirects back to the list |
+| POST   | 🔒staff `/job-postings/<id>/delete` | Deletes the job posting and redirects back to the list |
 | GET    | `/applications`               | HTML page listing job applications, with a form to apply to a job (JobApplicationController) |
-| POST   | `/applications`               | Creates an application from the HTML form (`user_id`, `job_posting_id`, `applied_date`); returns `409` if already applied |
-| POST   | `/applications/<id>/delete`   | Deletes the application and redirects back to the list |
-| GET/POST | `/api/job-postings`         | Direct route: list all job postings, or create one; returns `400` if `title`/`company` fail validation (see DDD.md) |
-| GET/PUT/PATCH/DELETE | `/api/job-postings/<id>` | Direct route: get, replace, partially update, or delete a job posting |
+| POST   | 🔒 `/applications`            | Creates an application from the HTML form (`user_id`, `job_posting_id`, `applied_date`); returns `409` if already applied |
+| POST   | 🔒staff `/applications/<id>/delete` | Deletes the application and redirects back to the list |
+| GET/POST | `/api/job-postings`         | Direct route: list all job postings, or 🔒 create one (`alumni` role only, `403` otherwise); returns `400` if `title`/`company` fail validation (see DDD.md) |
+| GET/PUT/PATCH/🔒staff DELETE | `/api/job-postings/<id>` | Direct route: get, replace, partially update, or delete a job posting |
 | GET    | `/api/applications`           | Direct route: list every job application in the system |
-| GET/DELETE | `/api/applications/<id>`  | Direct route: get or delete a single application |
-| GET/POST | `/api/job-postings/<id>/applications` | Nested route: list who applied to this job posting, or apply to it (`user_id`, `applied_date`) |
+| GET/🔒staff DELETE | `/api/applications/<id>`  | Direct route: get or delete a single application |
+| GET/🔒POST | `/api/job-postings/<id>/applications` | Nested route: list who applied to this job posting, or apply to it (`user_id`, `applied_date`) |
 | GET    | `/api/users/<id>/job-postings` | Nested route: list every job posting created by this user (one-to-many) |
 | GET    | `/api/users/<id>/applications` | Nested route: list every job this user applied to (many-to-many) |
 | GET    | `/api/swagger`                | Interactive Swagger UI (powered by [flasgger](https://github.com/flasgger/flasgger)) listing every documented route |

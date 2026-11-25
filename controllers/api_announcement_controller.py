@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from middleware.auth import STAFF_ROLES, require_role_api
 from models.announcement import Announcement
 
 api_announcement_bp = Blueprint(
@@ -65,9 +66,18 @@ def announcement_item(announcement_id):
     responses:
       200:
         description: Updated or deleted announcement
+      401:
+        description: Login required (DELETE only)
+      403:
+        description: Logged in but not staff (DELETE only)
       404:
         description: Announcement not found
     """
+    if request.method == "DELETE":
+        guard = require_role_api(*STAFF_ROLES)
+        if guard:
+            return guard
+
     announcement = Announcement.get_by_id(announcement_id)
     if announcement is None:
         return jsonify(error="Announcement not found"), 404

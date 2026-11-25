@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from middleware.auth import STAFF_ROLES, require_role_api
 from models.job_application import JobApplication
 from models.job_posting import JobPosting
 from models.user import User
@@ -10,7 +11,7 @@ api_user_bp = Blueprint("api_user", __name__, url_prefix="/api/users")
 @api_user_bp.route("", methods=["GET", "POST"])
 def users_collection():
     """
-    List all alumni records, or create a new one.
+    List all alumni records, or create a new one. Requires a login session.
     ---
     tags:
       - ApiUserController
@@ -32,7 +33,13 @@ def users_collection():
         description: List of alumni records
       201:
         description: Created alumni record
+      401:
+        description: Login required
     """
+    guard = require_role_api()
+    if guard:
+        return guard
+
     if request.method == "POST":
         user = User.create(
             request.form.get("first_name"),
@@ -72,9 +79,18 @@ def user_item(user_id):
     responses:
       200:
         description: Updated or deleted alumni record
+      401:
+        description: Login required (DELETE only)
+      403:
+        description: Logged in but not staff (DELETE only)
       404:
         description: User not found
     """
+    if request.method == "DELETE":
+        guard = require_role_api(*STAFF_ROLES)
+        if guard:
+            return guard
+
     user = User.get_by_id(user_id)
     if user is None:
         return jsonify(error="User not found"), 404

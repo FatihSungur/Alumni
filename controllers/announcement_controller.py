@@ -1,5 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
+from middleware.auth import staff_required
 from models.announcement import Announcement
 
 announcement_bp = Blueprint("announcement", __name__, url_prefix="/announcements")
@@ -85,9 +86,10 @@ def edit_announcement(announcement_id):
 
 
 @announcement_bp.route("/<int:announcement_id>/delete", methods=["POST"])
+@staff_required
 def delete_announcement(announcement_id):
     """
-    Delete an announcement.
+    Delete an announcement. Requires an admin or moderator session.
     ---
     tags:
       - AnnouncementController
@@ -99,6 +101,8 @@ def delete_announcement(announcement_id):
     responses:
       302:
         description: Redirect back to the list after deleting
+      403:
+        description: Logged in but not staff (admin/moderator)
       404:
         description: Announcement not found
     """
