@@ -5,10 +5,13 @@ A web platform built for the Web Programming course to connect graduates with th
 ## 🚀 Key Features (Planned & In Progress)
 
 - **Alumni Directory:** Basic profile and listing endpoints for graduates.
+- **Authentication & Roles:** Register/login/logout, alumni/student roles, admin/moderator staff roles with per-permission access, and an approval workflow for new accounts, job postings, and announcements — see [Authentication & Authorization](#authentication--authorization).
+- **Admin Panel:** Role management, permission-gated moderation tools, and pending-approval queues.
+- **User Profile:** Each logged-in user manages their own info, job postings, applications, and announcements, with a role-change request flow.
 - **Greeting & Utility Endpoints:** Early API building blocks (`/hello`, `/sum`, etc.) used to learn and validate the routing layer.
 - **Static Pages:** Home and About pages describing the project.
 - **Containerized Deployment:** Docker & Docker Compose setup so the app runs identically on any machine.
-- **Future Milestones:** Alumni profile management and search/filtering will be added in upcoming weeks.
+- **Future Milestones:** Search/filtering and richer alumni profile fields will be added in upcoming weeks.
 
 ## Tech Stack
 
@@ -161,6 +164,22 @@ python app.py
 ```
 
 The app will be available at `http://localhost:5000`. In practice, Docker Compose above is much simpler since it provisions the database for you.
+
+## Authentication & Authorization
+
+**Authentication** ("who are you?") is email + password, via a signed Flask session cookie — no separate token system. **Authorization** ("what are you allowed to do?") is driven by two independent things on a user: a **role** (`alumni` or `student`, chosen at registration) and an optional **staff role** (`admin` or `moderator`, only ever set by an admin — never self-service).
+
+- **`POST /register`** creates an account as `status='pending'`. It can't log in yet — an admin (or a moderator with the `approve_users` permission) has to approve it first from the [admin panel](#admin-panel).
+- **`POST /login`** / **`POST /logout`** start/end the session. A wrong password or a still-pending account both get a clear error instead of a stack trace.
+- **Guests** can browse announcements and job postings read-only. **Logged-in users** (student or alumni) can view the alumni directory and apply to job postings. Only **alumni** can create a job posting. **Any logged-in user** can post an announcement (it stays hidden, `status='pending'`, until staff approves it).
+- **Ownership:** editing or deleting a job posting, application, or announcement is only allowed for whoever created it, or for staff (`admin`/`moderator`) — enforced server-side (`middleware/auth.py`'s `require_owner_or_staff`), not just by hiding the buttons in the UI.
+- **Changing role:** a student can request to become alumni (or back) from `/profile` — it stays pending, with no effect, until staff approves it (`approve_role_changes`).
+
+### Admin panel
+
+`/admin` (`controllers/admin_controller.py`) is open to any `admin` or `moderator`, but what each one can actually do is permission-based: an `admin` can do everything with nothing to configure; a `moderator` only has the specific capabilities an admin granted them (`approve_users`, `manage_users`, `add_users`, `approve_job_postings`, `approve_announcements`, `approve_role_changes`) — each is checked independently, and the dashboard only shows the cards a given session is actually permitted to use. Granting roles/permissions themselves (`/admin/users/<id>/role`) is admin-only, full stop — never delegable to a moderator, to avoid a privilege-escalation hole.
+
+See [DDD.md](./DDD.md#user-roles--permissions) for the full permissions table, the reasoning behind each rule, and how it's all implemented and tested.
 
 ## API Endpoints
 
