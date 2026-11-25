@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - My Job Postings{% endblock %}
+
+{% block content %}
+<h1>My Job Postings</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job_posting in job_postings %}
+        <tr>
+            <td>{{ job_posting.id }}</td>
+            <td>{{ job_posting.title }}</td>
+            <td>{{ job_posting.company }}</td>
+            <td>{{ job_posting.status }}</td>
+            <td>
+                <a href="/job-postings/{{ job_posting.id }}/edit">Edit</a>
+                <form method="POST" action="/job-postings/{{ job_posting.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-small">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">You haven't posted any jobs yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/profile">Back to profile</a></p>
+{% endblock %}

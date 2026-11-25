@@ -13,7 +13,9 @@
             <th>Last Name</th>
             <th>Graduation Year</th>
             <th>Email</th>
+            {% if session.staff_role in ("admin", "moderator") %}
             <th>Actions</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -24,12 +26,14 @@
             <td>{{ user.last_name }}</td>
             <td>{{ user.graduation_year }}</td>
             <td>{{ user.email }}</td>
+            {% if session.staff_role in ("admin", "moderator") %}
             <td>
                 <a href="/users/{{ user.id }}/edit">Edit</a>
                 <form method="POST" action="/users/{{ user.id }}/delete" style="display:inline">
                     <button type="submit" class="btn btn-small">Delete</button>
                 </form>
             </td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>

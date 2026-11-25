@@ -18,7 +18,9 @@
             <th>Location</th>
             <th>Posted By (user id)</th>
             <th>Posted Date</th>
+            {% if session.staff_role in ("admin", "moderator") %}
             <th>Actions</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -30,12 +32,14 @@
             <td>{{ job_posting.location }}</td>
             <td>{{ job_posting.posted_by }}</td>
             <td>{{ job_posting.posted_date }}</td>
+            {% if session.staff_role in ("admin", "moderator") %}
             <td>
                 <a href="/job-postings/{{ job_posting.id }}/edit">Edit</a>
                 <form method="POST" action="/job-postings/{{ job_posting.id }}/delete" style="display:inline">
                     <button type="submit" class="btn btn-small">Delete</button>
                 </form>
             </td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>
@@ -45,6 +49,7 @@
     </tbody>
 </table>
 
+{% if session.role == "alumni" %}
 <h2>Add a new job posting</h2>
 <form method="POST" action="/job-postings">
     <label>Title: <input type="text" name="title"></label>
@@ -55,6 +60,7 @@
     <label>Posted date: <input type="text" name="posted_date" placeholder="YYYY-MM-DD"></label>
     <button type="submit" class="btn">Create</button>
 </form>
+{% endif %}
 
 <p><a href="/applications">View job applications</a></p>
 {% endblock %}

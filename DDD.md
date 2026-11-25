@@ -27,6 +27,7 @@ Backs the `User` model (`models/user.py`). Represents one alumni record.
 | `password_hash`   | `VARCHAR(255)` | nullable                     | Added in the same migration. Nullable because seeded/demo users (created via `User.create`, not `User.register`) have no login credentials — only accounts created through `/register` get one |
 | `staff_role`      | `VARCHAR(20)`  | nullable, `CHECK (staff_role IN ('admin', 'moderator'))` | Added in `migrations/004_...sql`. `NULL` = no elevated privileges. Never set by the user themselves — only via `/admin/users/<id>/role`, admin-only |
 | `status`          | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'approved'`, `CHECK (status IN ('pending', 'approved'))` | Added in `migrations/005_...sql`. `/register` inserts `'pending'` explicitly; everything else (factories, `/admin/users/new`) rides the default |
+| `requested_role`  | `VARCHAR(20)`  | nullable, `CHECK (requested_role IN ('alumni', 'student'))` | Added in `migrations/006_...sql`. `NULL` = no pending request — see **Role-change requests** below |
 
 ```sql
 CREATE TABLE users (
@@ -49,6 +50,10 @@ ALTER TABLE users
 -- migrations/005_add_permissions_and_approval_status.sql
 ALTER TABLE users
     ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved'));
+
+-- migrations/006_add_ownership_and_role_requests.sql
+ALTER TABLE users
+    ADD COLUMN requested_role VARCHAR(20) CHECK (requested_role IN ('alumni', 'student'));
 ```
 
 ### Table: `announcements`
@@ -62,6 +67,7 @@ Backs the `Announcement` model (`models/announcement.py`). Represents one announ
 | `content` | `TEXT`         | `NOT NULL`        | Longer free text, unlike title       |
 | `date`    | `DATE`         | `NOT NULL`        |                                       |
 | `status`  | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'approved'`, `CHECK (status IN ('pending', 'approved'))` | Added in `migrations/005_...sql` — see **Approval workflow** below |
+| `created_by` | `INTEGER`   | nullable, `REFERENCES users(id)` | Added in `migrations/006_...sql`. Nullable because rows that predate this column have no known creator. Creating an announcement now requires login specifically so this is always populated going forward — see **Ownership-based authorization** below |
 
 ```sql
 CREATE TABLE announcements (
@@ -74,6 +80,10 @@ CREATE TABLE announcements (
 -- migrations/005_add_permissions_and_approval_status.sql
 ALTER TABLE announcements
     ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved'));
+
+-- migrations/006_add_ownership_and_role_requests.sql
+ALTER TABLE announcements
+    ADD COLUMN created_by INTEGER REFERENCES users(id);
 ```
 
 ### Table: `job_postings`
@@ -274,6 +284,8 @@ An admin UI to manage this is a natural future task, not built yet.
 | Delete any user / announcement / job posting / application | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Approve a pending user / job posting / announcement | ❌ | ❌ | ❌ | per permission† | ✅ |
 | Manage users / add a user / grant roles | ❌ | ❌ | ❌ | per permission†, never roles | ✅ |
+| Edit/delete own job posting, application, or announcement | ❌ | ✅ (own) | ✅ (own) | ✅ (own, same as everyone) | ✅ (own, same as everyone) |
+| Request a role change (e.g. become alumni) | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Register an account | ✅ → becomes Student or Alumni | — | — | — | — |
 
 \* a moderator/admin who is *also* `alumni` can create one — through the `alumni` role, not the staff role. `staff_role` only ever grants the delete/moderation row.
@@ -327,7 +339,7 @@ CREATE TABLE moderator_permissions (
     user_id INTEGER NOT NULL REFERENCES users(id),
     permission VARCHAR(30) NOT NULL CHECK (permission IN (
         'approve_users', 'manage_users', 'add_users',
-        'approve_job_postings', 'approve_announcements'
+        'approve_job_postings', 'approve_announcements', 'approve_role_changes'
     )),
     UNIQUE (user_id, permission)
 );
@@ -345,6 +357,7 @@ Routes and their permission:
 | `GET /admin/users/pending`, `POST .../approve` | `approve_users` |
 | `GET /admin/job-postings/pending`, `POST .../approve` | `approve_job_postings` |
 | `GET /admin/announcements/pending`, `POST .../approve` | `approve_announcements` |
+| `GET /admin/role-changes/pending`, `POST .../approve` | `approve_role_changes` |
 | `GET/POST /admin/users/<id>/role` | **`admin` only**, not delegable |
 
 Verified live: a moderator granted only `approve_job_postings` sees exactly one feature card on the dashboard, gets `200` on `/admin/job-postings/pending` and can approve from there, but gets `403` on `/admin/users`, `/admin/announcements/pending`, and `/admin/users/<id>/role` — while a plain delete elsewhere (`staff_required`, unrelated to this permission system) still works, since that was never gated per-permission.
@@ -356,5 +369,45 @@ The nav (`templates/base.html`) shows the "Admin Panel" link for `session.staff_
 Three tables gained a `status` column (`'pending'` / `'approved'`, `DEFAULT 'approved'` so every existing row — and anything inserted by factories/seed/the old ad-hoc create flows that don't mention it — is grandfathered in untouched):
 
 - **`POST /register`** now inserts `status = 'pending'` explicitly. **`POST /login` refuses a pending account** with "Your account is still pending admin approval" — approval is a real access gate, not just a label. An admin, or a moderator with `approve_users`, approves from `/admin/users/pending`.
-- **`POST /job-postings`** (alumni creating a listing) and **`POST /announcements`** (anyone) also insert `'pending'`. `JobPosting.get_approved()` / `Announcement.get_approved()` are what the public list pages and the JSON API now query — a pending posting or announcement simply doesn't exist yet as far as a guest, student, or alumnus browsing the site is concerned, until `approve_job_postings` / `approve_announcements` clears it.
+- **`POST /job-postings`** (alumni creating a listing) and **`POST /announcements`** (any logged-in user) also insert `'pending'`. `JobPosting.get_approved()` / `Announcement.get_approved()` are what the public list pages and the JSON API now query — a pending posting or announcement simply doesn't exist yet as far as a guest, student, or alumnus browsing the site is concerned, until `approve_job_postings` / `approve_announcements` clears it.
 - `User.create()` (the admin's "add a user" flow, and factories/seed) never sets `status` at all, so it rides the `DEFAULT 'approved'` — a user an admin adds directly doesn't need to also approve themselves.
+
+### Ownership-based authorization (`require_owner_or_staff`, `middleware/auth.py`)
+
+`staff_required` answers "is this session staff" — a blunt yes/no that doesn't care whose record it is. That was fine as long as editing/deleting was staff-only, but once regular users needed to manage *their own* job postings, applications, and announcements (see **Profile pages** below), a sharper check was needed: "is this session either staff, **or** the actual owner of this specific record?"
+
+```python
+def require_owner_or_staff(owner_id):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login", error="Please log in to continue"))
+    if session.get("staff_role") in STAFF_ROLES:
+        return None
+    if session.get("user_id") == owner_id:
+        return None
+    return render_template("403.html"), 403
+```
+
+Called with whatever column actually identifies the owner for that resource — `job_posting["posted_by"]`, `announcement["created_by"]`, `application["user_id"]`, or a user's own `user["id"]` — on every edit/delete route (HTML and, as `require_owner_or_staff_api`, JSON) across users, job postings, announcements, and applications. This closed a real, pre-existing gap flagged earlier in this document ("Still open: ... any logged-in session can currently edit any job posting, not just its own") — every one of those routes had either no guard at all or a blanket `staff_required` before this; now a regular alumnus can manage exactly their own listing and nothing else, verified live against an unrelated alumni account (`403`) and the real owner (succeeds).
+
+### Role-change requests (`requested_role`, `migrations/006_...sql`)
+
+A student who has actually graduated needs a way to become `alumni` — but shouldn't be able to just flip that switch themselves (same reasoning as `staff_role`: significant changes in what an account can do are staff-approved, not self-service). `requested_role` records the ask without touching `role` at all until it's approved:
+
+- **`POST /profile/request-role-change`** sets `requested_role` to the opposite of the user's current `role`. While it's pending, the user keeps functioning exactly as their *current* role — a student who requested `alumni` still can't create a job posting until approved; they can still log in and browse normally, unlike a brand-new pending registration, which can't log in at all. Different kind of "pending", different gate.
+- **`approve_role_changes`** (one more entry in the `moderator_permissions` list, migration 006 drops and re-adds the `CHECK` constraint to include it) — an admin, or a moderator granted this permission, reviews requests at `/admin/role-changes/pending` and approves from there. `User.approve_role_change(...)` does `role = requested_role, requested_role = NULL` in one `UPDATE`.
+
+### Profile pages (`/profile`, `controllers/profile_controller.py`)
+
+This is the "user-specific pages" task: every logged-in user gets a personal area, reached from the nav's account dropdown (see **Dynamic navigation** below), scoped entirely to `session["user_id"]` — there's no route here for viewing *someone else's* profile.
+
+- **`GET /profile`** — the user's own info, their pending role-change status if any, a button to request one, and a "delete my account" form.
+- **`POST /profile/delete`** — deletes the user's own row. If they still have job postings, applications, or announcements referencing them, that's a `psycopg2.errors.ForeignKeyViolation` — caught explicitly and turned into "Delete your job postings, applications, and announcements first" instead of a 500, the same philosophy as every other graceful-constraint-handling spot in this app (duplicate application, duplicate email).
+- **`GET /profile/job-postings` / `/profile/applications` / `/profile/announcements`** — each just calls the relevant model's existing `get_by_user(...)` (already built for the nested API routes back in the one-to-many/many-to-many weeks) and renders a table with Edit/Delete links. Those links hit the *same* routes as the general pages — `/job-postings/<id>/edit`, `/announcements/<id>/delete`, etc. — which now work for the owner specifically because of `require_owner_or_staff` above, not because these pages are special.
+
+### Dynamic navigation (`templates/base.html`)
+
+The nav changes based on who's looking, beyond just the "Admin Panel" link and the Login/Register-vs-account-menu swap that already existed:
+
+- **"Alumni Directory"** only renders for a logged-in session (`{% if session.user_id %}`) — matching the permissions table (`View the alumni directory: Guest ❌`). Previously it was always shown and a guest clicking it just bounced to `/login`; showing a link that's guaranteed to redirect isn't "dynamic," it's just wrong.
+- **The account dropdown** (`<details class="account-menu"><summary>Hi, {{ session.first_name }} ...`) replaces the old plain "Hi, X" text once logged in — a zero-JavaScript dropdown using the native HTML `<details>`/`<summary>` disclosure widget (consistent with this project never using JS for interactivity), linking to the four `/profile...` pages plus Logout.
+- **Edit/Delete columns on the general list pages** (`/users`, `/announcements`, `/job-postings`, `/applications`) now only render `{% if session.staff_role in ("admin", "moderator") %}` — a regular visitor, even the owner of a given row, sees a read-only table there now; managing *your own* records moved entirely to the `/profile/...` pages. The "Add a new job posting" form only renders for `session.role == "alumni"`, and "Add a new announcement" only for any logged-in session — hiding a form a visitor would just get `403`'d on anyway.

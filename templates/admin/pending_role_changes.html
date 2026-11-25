@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Pending Role Changes{% endblock %}
+
+{% block content %}
+<h1>Pending Role Changes</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Current Role</th>
+            <th>Requested Role</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.first_name }} {{ user.last_name }}</td>
+            <td>{{ user.role }}</td>
+            <td>{{ user.requested_role }}</td>
+            <td>
+                <form method="POST" action="/admin/role-changes/{{ user.id }}/approve" style="display:inline">
+                    <button type="submit" class="btn btn-small">Approve</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">Nothing pending.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/admin">Back to admin panel</a></p>
+{% endblock %}

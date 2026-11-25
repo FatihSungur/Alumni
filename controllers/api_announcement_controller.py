@@ -1,6 +1,6 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 
-from middleware.auth import STAFF_ROLES, require_role_api
+from middleware.auth import require_owner_or_staff_api, require_role_api
 from models.announcement import Announcement
 
 api_announcement_bp = Blueprint(
@@ -30,12 +30,19 @@ def announcements_collection():
         description: List of announcements
       201:
         description: Created announcement
+      401:
+        description: Login required (POST only)
     """
     if request.method == "POST":
+        guard = require_role_api()
+        if guard:
+            return guard
+
         announcement = Announcement.create(
             request.form.get("title"),
             request.form.get("content"),
             request.form.get("date"),
+            session["user_id"],
         )
         return jsonify(announcement), 201
 
@@ -67,20 +74,19 @@ def announcement_item(announcement_id):
       200:
         description: Updated or deleted announcement
       401:
-        description: Login required (DELETE only)
+        description: Login required
       403:
-        description: Logged in but not staff (DELETE only)
+        description: Logged in but neither the creator nor staff
       404:
         description: Announcement not found
     """
-    if request.method == "DELETE":
-        guard = require_role_api(*STAFF_ROLES)
-        if guard:
-            return guard
-
     announcement = Announcement.get_by_id(announcement_id)
     if announcement is None:
         return jsonify(error="Announcement not found"), 404
+
+    guard = require_owner_or_staff_api(announcement["created_by"])
+    if guard:
+        return guard
 
     if request.method == "PUT":
         updated_announcement = Announcement.update(

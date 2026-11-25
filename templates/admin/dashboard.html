@@ -30,6 +30,14 @@
     </div>
     {% endif %}
 
+    {% if can_approve_role_changes %}
+    <div class="feature-card">
+        <h3>Pending Role Changes</h3>
+        <p>{{ pending_role_change_count }} awaiting approval</p>
+        <a href="/admin/role-changes/pending">Review</a>
+    </div>
+    {% endif %}
+
     {% if can_approve_job_postings %}
     <div class="feature-card">
         <h3>Pending Job Postings</h3>

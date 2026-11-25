@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
-from middleware.auth import login_required, staff_required
+from middleware.auth import login_required, require_owner_or_staff, staff_required
 from models.user import User
 
 user_bp = Blueprint("user", __name__, url_prefix="/users")
@@ -74,12 +74,18 @@ def edit_user(user_id):
         description: HTML edit form
       302:
         description: Redirect back to the list after saving
+      403:
+        description: Logged in but neither this user nor staff
       404:
         description: User not found
     """
     user = User.get_by_id(user_id)
     if user is None:
         return render_template("404.html"), 404
+
+    guard = require_owner_or_staff(user["id"])
+    if guard:
+        return guard
 
     if request.method == "POST":
         User.update(

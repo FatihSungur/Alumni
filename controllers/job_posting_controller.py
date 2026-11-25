@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
-from middleware.auth import require_role, staff_required
+from middleware.auth import require_owner_or_staff, require_role
 from models.job_posting import JobPosting
 
 job_posting_bp = Blueprint("job_posting", __name__, url_prefix="/job-postings")
@@ -101,12 +101,18 @@ def edit_job_posting(job_posting_id):
         description: HTML edit form
       302:
         description: Redirect back to the list after saving
+      403:
+        description: Logged in but neither the poster nor staff
       404:
         description: Job posting not found
     """
     job_posting = JobPosting.get_by_id(job_posting_id)
     if job_posting is None:
         return render_template("404.html"), 404
+
+    guard = require_owner_or_staff(job_posting["posted_by"])
+    if guard:
+        return guard
 
     if request.method == "POST":
         JobPosting.update(
@@ -123,10 +129,9 @@ def edit_job_posting(job_posting_id):
 
 
 @job_posting_bp.route("/<int:job_posting_id>/delete", methods=["POST"])
-@staff_required
 def delete_job_posting(job_posting_id):
     """
-    Delete a job posting. Requires an admin or moderator session.
+    Delete a job posting. Requires being its poster, or staff.
     ---
     tags:
       - JobPostingController
@@ -139,13 +144,17 @@ def delete_job_posting(job_posting_id):
       302:
         description: Redirect back to the list after deleting
       403:
-        description: Logged in but not staff (admin/moderator)
+        description: Logged in but neither the poster nor staff
       404:
         description: Job posting not found
     """
     job_posting = JobPosting.get_by_id(job_posting_id)
     if job_posting is None:
         return render_template("404.html"), 404
+
+    guard = require_owner_or_staff(job_posting["posted_by"])
+    if guard:
+        return guard
 
     JobPosting.delete(job_posting_id)
     return redirect(url_for("job_posting.job_postings_collection"))

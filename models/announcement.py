@@ -1,20 +1,20 @@
 from models.db import get_connection
 
-COLUMNS = "id, title, content, date, status"
+COLUMNS = "id, title, content, date, status, created_by"
 
 
 class Announcement:
     @staticmethod
-    def create(title, content, date):
+    def create(title, content, date, created_by):
         connection = get_connection()
         cursor = connection.cursor()
         cursor.execute(
             f"""
-            INSERT INTO announcements (title, content, date, status)
-            VALUES (%s, %s, %s, 'pending')
+            INSERT INTO announcements (title, content, date, status, created_by)
+            VALUES (%s, %s, %s, 'pending', %s)
             RETURNING {COLUMNS}
             """,
-            (title, content, date),
+            (title, content, date, created_by),
         )
         announcement = cursor.fetchone()
         connection.commit()
@@ -27,6 +27,19 @@ class Announcement:
         connection = get_connection()
         cursor = connection.cursor()
         cursor.execute(f"SELECT {COLUMNS} FROM announcements ORDER BY id")
+        announcements = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return announcements
+
+    @staticmethod
+    def get_by_user(user_id):
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"SELECT {COLUMNS} FROM announcements WHERE created_by = %s ORDER BY id",
+            (user_id,),
+        )
         announcements = cursor.fetchall()
         cursor.close()
         connection.close()

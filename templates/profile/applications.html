@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - My Applications{% endblock %}
+
+{% block content %}
+<h1>My Applications</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Job Title</th>
+            <th>Company</th>
+            <th>Applied Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for application in applications %}
+        <tr>
+            <td>{{ application.id }}</td>
+            <td>{{ application.title }}</td>
+            <td>{{ application.company }}</td>
+            <td>{{ application.applied_date }}</td>
+            <td>
+                <form method="POST" action="/applications/{{ application.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-small">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">You haven't applied to anything yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/profile">Back to profile</a></p>
+{% endblock %}

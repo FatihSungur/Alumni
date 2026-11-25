@@ -47,7 +47,9 @@
                 <span class="logo-text">Alumni</span>
             </a>
             <ul>
+                {% if session.user_id %}
                 <li><a href="/users">Alumni Directory</a></li>
+                {% endif %}
                 <li><a href="/announcements">Announcements</a></li>
                 <li><a href="/job-postings">Job Postings</a></li>
                 <li><a href="/applications">Applications</a></li>
@@ -56,11 +58,21 @@
                 <li><a href="/admin">Admin Panel</a></li>
                 {% endif %}
                 {% if session.user_id %}
-                <li>Hi, {{ session.first_name }} ({{ session.role }})</li>
                 <li>
-                    <form method="POST" action="/logout" style="display:inline">
-                        <button type="submit" class="btn btn-small">Logout</button>
-                    </form>
+                    <details class="account-menu">
+                        <summary>Hi, {{ session.first_name }} ({{ session.role }})</summary>
+                        <ul>
+                            <li><a href="/profile">My Profile</a></li>
+                            <li><a href="/profile/job-postings">My Job Postings</a></li>
+                            <li><a href="/profile/applications">My Applications</a></li>
+                            <li><a href="/profile/announcements">My Announcements</a></li>
+                            <li>
+                                <form method="POST" action="/logout">
+                                    <button type="submit" class="btn btn-small">Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </details>
                 </li>
                 {% else %}
                 <li><a href="/login">Login</a></li>

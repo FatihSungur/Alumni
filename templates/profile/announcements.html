@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - My Announcements{% endblock %}
+
+{% block content %}
+<h1>My Announcements</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for announcement in announcements %}
+        <tr>
+            <td>{{ announcement.id }}</td>
+            <td>{{ announcement.title }}</td>
+            <td>{{ announcement.date }}</td>
+            <td>{{ announcement.status }}</td>
+            <td>
+                <a href="/announcements/{{ announcement.id }}/edit">Edit</a>
+                <form method="POST" action="/announcements/{{ announcement.id }}/delete" style="display:inline">
+                    <button type="submit" class="btn btn-small">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">You haven't posted any announcements yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/profile">Back to profile</a></p>
+{% endblock %}

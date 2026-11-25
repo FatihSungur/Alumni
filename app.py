@@ -12,6 +12,7 @@ from controllers.api_user_controller import api_user_bp
 from controllers.auth_controller import auth_bp
 from controllers.job_application_controller import job_application_bp
 from controllers.job_posting_controller import job_posting_bp
+from controllers.profile_controller import profile_bp
 from controllers.user_controller import user_bp
 from middleware.error_handlers import register_error_handlers
 from middleware.logger import register_request_logger
@@ -56,6 +57,7 @@ app.register_blueprint(job_posting_bp)
 app.register_blueprint(job_application_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(profile_bp)
 
 register_request_logger(app)
 register_error_handlers(app)

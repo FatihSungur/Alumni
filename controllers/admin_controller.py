@@ -49,10 +49,12 @@ def dashboard():
         pending_user_count=len(User.get_pending()),
         pending_job_posting_count=len(JobPosting.get_pending()),
         pending_announcement_count=len(Announcement.get_pending()),
+        pending_role_change_count=len(User.get_pending_role_changes()),
         is_admin=is_admin,
         can_manage_users=can("manage_users"),
         can_add_users=can("add_users"),
         can_approve_users=can("approve_users"),
+        can_approve_role_changes=can("approve_role_changes"),
         can_approve_job_postings=can("approve_job_postings"),
         can_approve_announcements=can("approve_announcements"),
     )
@@ -178,6 +180,59 @@ def approve_user(user_id):
 
     User.approve(user_id)
     return redirect(url_for("admin.pending_users"))
+
+
+@admin_bp.route("/role-changes/pending")
+def pending_role_changes():
+    """
+    List users with a pending role-change request (e.g. student asking to
+    become alumni). Requires approve_role_changes (or admin).
+    ---
+    tags:
+      - AdminController
+    responses:
+      200:
+        description: HTML page listing pending role-change requests
+      403:
+        description: Logged in but missing the approve_role_changes permission
+    """
+    guard = require_permission("approve_role_changes")
+    if guard:
+        return guard
+
+    return render_template("admin/pending_role_changes.html", users=User.get_pending_role_changes())
+
+
+@admin_bp.route("/role-changes/<int:user_id>/approve", methods=["POST"])
+def approve_role_change(user_id):
+    """
+    Approve a pending role-change request. Requires approve_role_changes (or admin).
+    ---
+    tags:
+      - AdminController
+    parameters:
+      - name: user_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      302:
+        description: Redirect back to the pending list after approving
+      403:
+        description: Logged in but missing the approve_role_changes permission
+      404:
+        description: User not found
+    """
+    guard = require_permission("approve_role_changes")
+    if guard:
+        return guard
+
+    user = User.get_by_id(user_id)
+    if user is None:
+        return render_template("404.html"), 404
+
+    User.approve_role_change(user_id)
+    return redirect(url_for("admin.pending_role_changes"))
 
 
 @admin_bp.route("/job-postings/pending")

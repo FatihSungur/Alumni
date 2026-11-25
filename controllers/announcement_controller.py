@@ -1,6 +1,6 @@
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request, session, url_for
 
-from middleware.auth import staff_required
+from middleware.auth import require_owner_or_staff, require_role
 from models.announcement import Announcement
 
 announcement_bp = Blueprint("announcement", __name__, url_prefix="/announcements")
@@ -10,6 +10,8 @@ announcement_bp = Blueprint("announcement", __name__, url_prefix="/announcements
 def announcements_collection():
     """
     List all announcements as an HTML page, or create a new one from a form.
+    Creating requires a login session, so every announcement has a known
+    creator (see DDD.md — needed for "my announcements").
     ---
     tags:
       - AnnouncementController
@@ -27,13 +29,18 @@ def announcements_collection():
       200:
         description: HTML page listing announcements
       302:
-        description: Redirect back to the list after creating an announcement
+        description: Redirect back to the list after creating an announcement, or to /login if not logged in
     """
     if request.method == "POST":
+        guard = require_role()
+        if guard:
+            return guard
+
         Announcement.create(
             request.form.get("title"),
             request.form.get("content"),
             request.form.get("date"),
+            session["user_id"],
         )
         return redirect(url_for(
             "announcement.announcements_collection",
@@ -73,12 +80,18 @@ def edit_announcement(announcement_id):
         description: HTML edit form
       302:
         description: Redirect back to the list after saving
+      403:
+        description: Logged in but neither the creator nor staff
       404:
         description: Announcement not found
     """
     announcement = Announcement.get_by_id(announcement_id)
     if announcement is None:
         return render_template("404.html"), 404
+
+    guard = require_owner_or_staff(announcement["created_by"])
+    if guard:
+        return guard
 
     if request.method == "POST":
         Announcement.update(
@@ -93,10 +106,9 @@ def edit_announcement(announcement_id):
 
 
 @announcement_bp.route("/<int:announcement_id>/delete", methods=["POST"])
-@staff_required
 def delete_announcement(announcement_id):
     """
-    Delete an announcement. Requires an admin or moderator session.
+    Delete an announcement. Requires being its creator, or staff.
     ---
     tags:
       - AnnouncementController
@@ -109,13 +121,17 @@ def delete_announcement(announcement_id):
       302:
         description: Redirect back to the list after deleting
       403:
-        description: Logged in but not staff (admin/moderator)
+        description: Logged in but neither the creator nor staff
       404:
         description: Announcement not found
     """
     announcement = Announcement.get_by_id(announcement_id)
     if announcement is None:
         return render_template("404.html"), 404
+
+    guard = require_owner_or_staff(announcement["created_by"])
+    if guard:
+        return guard
 
     Announcement.delete(announcement_id)
     return redirect(url_for("announcement.announcements_collection"))

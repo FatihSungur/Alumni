@@ -45,7 +45,8 @@ Alumni-Web-Programming/
 │   ├── job_posting_controller.py       # Controller: HTML pages for /job-postings (list, create, edit, delete)
 │   ├── job_application_controller.py   # Controller: HTML pages for /applications (list, apply, delete)
 │   ├── auth_controller.py              # Controller: HTML pages for /register, /login, /logout
-│   └── admin_controller.py             # Controller: HTML admin panel (/admin) — dashboard + role management, admin-only
+│   ├── admin_controller.py             # Controller: HTML admin panel (/admin) — dashboard, permission-gated per route
+│   └── profile_controller.py           # Controller: HTML pages for /profile — own info, own job postings/applications/announcements, role-change request, self-delete
 ├── middleware/
 │   ├── __init__.py
 │   ├── logger.py                       # Request logger: logs method/path/status/duration for every request
@@ -68,7 +69,13 @@ Alumni-Web-Programming/
 │   │   ├── pending_users.html           # Registrations awaiting approval (approve_users)
 │   │   ├── pending_job_postings.html    # Job postings awaiting approval (approve_job_postings)
 │   │   ├── pending_announcements.html   # Announcements awaiting approval (approve_announcements)
+│   │   ├── pending_role_changes.html    # Users asking to switch role (approve_role_changes)
 │   │   └── edit_role.html               # Form to change a user's role/staff_role/permissions (admin only)
+│   ├── profile/
+│   │   ├── show.html                    # Own profile: info, role-change request, delete account
+│   │   ├── job_postings.html            # Own job postings, any status, with edit/delete
+│   │   ├── applications.html            # Own job applications, with delete
+│   │   └── announcements.html           # Own announcements, any status, with edit/delete
 │   ├── users/
 │   │   ├── list.html                   # Lists all users + a form to create a new one
 │   │   └── edit.html                   # Pre-filled form to edit a single user
@@ -85,7 +92,8 @@ Alumni-Web-Programming/
 │   ├── 002_create_job_postings_and_applications.sql # Creates `job_postings` + `job_applications`
 │   ├── 003_add_user_roles_and_auth.sql  # Adds `role` and `password_hash` to `users` (see DDD.md)
 │   ├── 004_add_staff_roles.sql          # Adds `staff_role` ('admin'/'moderator') to `users` (see DDD.md)
-│   └── 005_add_permissions_and_approval_status.sql # Adds `moderator_permissions` + `status` on users/job_postings/announcements (see DDD.md)
+│   ├── 005_add_permissions_and_approval_status.sql # Adds `moderator_permissions` + `status` on users/job_postings/announcements (see DDD.md)
+│   └── 006_add_ownership_and_role_requests.sql # Adds `announcements.created_by`, `users.requested_role`, `approve_role_changes` permission (see DDD.md)
 ├── factories/
 │   ├── __init__.py
 │   ├── user_factory.py                 # Generates realistic fake user data (via Faker)
@@ -156,7 +164,7 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 
 ## API Endpoints
 
-> **Auth guardian:** routes marked 🔒 require a login session, 🔒staff require `admin`/`moderator`, and 🔒perm require a specific permission (an `admin` always has it; a `moderator` only if granted — see [DDD.md](./DDD.md#moderator-permissions-moderator_permissions-table-migrations005sql)) except `/admin/users/<id>/role`, which is 🔒admin-only even for moderators. A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role/permission on any of them returns `403`.
+> **Auth guardian:** routes marked 🔒 require a login session, 🔒own require being the record's owner **or** staff, 🔒staff require `admin`/`moderator`, and 🔒perm require a specific permission (an `admin` always has it; a `moderator` only if granted — see [DDD.md](./DDD.md#moderator-permissions-moderator_permissions-table-migrations005sql)) except `/admin/users/<id>/role`, which is 🔒admin-only even for moderators. A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role/permission/ownership on any of them returns `403`.
 
 | Method | Path                          | Description                          |
 |--------|-------------------------------|---------------------------------------|
@@ -172,8 +180,8 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | POST   | `/logout`                     | Clears the session and redirects home |
 | GET    | 🔒 `/users`                   | HTML page listing alumni, with a form to create a new one (UserController) |
 | POST   | 🔒 `/users`                   | Creates an alumni record from the HTML form and redirects back to the list |
-| GET    | `/users/<id>/edit`            | HTML form pre-filled with the record's current data |
-| POST   | `/users/<id>/edit`             | Saves the edited record and redirects back to the list |
+| GET    | 🔒own `/users/<id>/edit`      | HTML form pre-filled with the record's current data — only this user or staff |
+| POST   | 🔒own `/users/<id>/edit`      | Saves the edited record and redirects back to the list |
 | POST   | 🔒staff `/users/<id>/delete`  | Deletes the record and redirects back to the list |
 | GET    | `/api/health`                 | Returns `{"status": "ok"}` as JSON    |
 | POST   | 🔒 `/api/users`               | Creates an alumni record from form data (`first_name`, `last_name`, `graduation_year`, `email`) and returns it (with an auto-generated `id`) as JSON |
@@ -181,28 +189,26 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
 | PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
 | DELETE | 🔒staff `/api/users/<id>`     | Deletes the record with the given `id` and returns the deleted record as JSON |
-| GET    | `/announcements`              | HTML page listing **approved** announcements, with a form to create a new one (AnnouncementController) |
-| POST   | `/announcements`              | Creates an announcement (`status='pending'`) and redirects back with a submitted-for-approval message; it won't appear in the list until staff approves it |
-| GET    | `/announcements/<id>/edit`    | HTML form pre-filled with the announcement's current data |
-| POST   | `/announcements/<id>/edit`    | Saves the edited announcement and redirects back to the list |
-| POST   | 🔒staff `/announcements/<id>/delete` | Deletes the announcement and redirects back to the list |
-| POST   | `/api/announcements`          | Creates an announcement from form data (`title`, `content`, `date`) and returns it (with an auto-generated `id`) as JSON |
-| GET    | `/api/announcements`          | Returns all announcements created so far, as a JSON list |
-| PUT    | `/api/announcements/<id>`     | Replaces all fields of the announcement with the given `id` and returns it as JSON |
-| PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
-| DELETE | 🔒staff `/api/announcements/<id>` | Deletes the announcement with the given `id` and returns the deleted record as JSON |
+| GET    | `/announcements`              | HTML page listing **approved** announcements, with a form (logged-in users only) to create a new one (AnnouncementController) |
+| POST   | 🔒 `/announcements`           | Creates an announcement (`status='pending'`, `created_by` = the session) and redirects back with a submitted-for-approval message; it won't appear in the list until staff approves it |
+| GET    | 🔒own `/announcements/<id>/edit` | HTML form pre-filled with the announcement's current data — only its creator or staff |
+| POST   | 🔒own `/announcements/<id>/edit` | Saves the edited announcement and redirects back to the list |
+| POST   | 🔒own `/announcements/<id>/delete` | Deletes the announcement and redirects back to the list — its creator or staff |
+| POST   | 🔒 `/api/announcements`       | Creates an announcement (`status='pending'`, `created_by` = the session) from form data (`title`, `content`, `date`) and returns it as JSON |
+| GET    | `/api/announcements`          | Returns all **approved** announcements, as a JSON list |
+| PUT/PATCH/🔒own DELETE | `/api/announcements/<id>` | Replaces/updates a field, or (creator/staff only) deletes the announcement with the given `id`, returning it as JSON |
 | GET    | `/job-postings`               | HTML page listing **approved** job postings, with a form to create a new one (JobPostingController) |
 | POST   | 🔒 `/job-postings`            | Creates a job posting (`status='pending'`) from the HTML form (`alumni` role only, `403` otherwise); redirects back with a submitted-for-approval message, or with `?error=...` if `title`/`company` fail validation (see DDD.md) |
-| GET    | `/job-postings/<id>/edit`     | HTML form pre-filled with the job posting's current data |
-| POST   | `/job-postings/<id>/edit`     | Saves the edited job posting and redirects back to the list |
-| POST   | 🔒staff `/job-postings/<id>/delete` | Deletes the job posting and redirects back to the list |
+| GET    | 🔒own `/job-postings/<id>/edit` | HTML form pre-filled with the job posting's current data — only its poster or staff |
+| POST   | 🔒own `/job-postings/<id>/edit` | Saves the edited job posting and redirects back to the list |
+| POST   | 🔒own `/job-postings/<id>/delete` | Deletes the job posting and redirects back to the list — its poster or staff |
 | GET    | `/applications`               | HTML page listing job applications, with a form to apply to a job (JobApplicationController) |
 | POST   | 🔒 `/applications`            | Creates an application from the HTML form (`user_id`, `job_posting_id`, `applied_date`); returns `409` if already applied |
-| POST   | 🔒staff `/applications/<id>/delete` | Deletes the application and redirects back to the list |
-| GET/POST | `/api/job-postings`         | Direct route: list all job postings, or 🔒 create one (`alumni` role only, `403` otherwise); returns `400` if `title`/`company` fail validation (see DDD.md) |
-| GET/PUT/PATCH/🔒staff DELETE | `/api/job-postings/<id>` | Direct route: get, replace, partially update, or delete a job posting |
+| POST   | 🔒own `/applications/<id>/delete` | Deletes the application and redirects back to the list — the applicant or staff |
+| GET/POST | `/api/job-postings`         | Direct route: list all **approved** job postings, or 🔒 create one (`alumni` role only, `403` otherwise); returns `400` if `title`/`company` fail validation (see DDD.md) |
+| GET/🔒own PUT/PATCH/DELETE | `/api/job-postings/<id>` | Direct route: get, or (poster/staff only) replace, partially update, or delete a job posting |
 | GET    | `/api/applications`           | Direct route: list every job application in the system |
-| GET/🔒staff DELETE | `/api/applications/<id>`  | Direct route: get or delete a single application |
+| GET/🔒own DELETE | `/api/applications/<id>`  | Direct route: get, or (applicant/staff only) delete a single application |
 | GET/🔒POST | `/api/job-postings/<id>/applications` | Nested route: list who applied to this job posting, or apply to it (`user_id`, `applied_date`) |
 | GET    | `/api/users/<id>/job-postings` | Nested route: list every job posting created by this user (one-to-many) |
 | GET    | `/api/users/<id>/applications` | Nested route: list every job this user applied to (many-to-many) |
@@ -216,8 +222,16 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | POST   | 🔒perm `/admin/job-postings/<id>/approve` (`approve_job_postings`) | Approves a pending job posting |
 | GET    | 🔒perm `/admin/announcements/pending` (`approve_announcements`) | Announcements awaiting approval |
 | POST   | 🔒perm `/admin/announcements/<id>/approve` (`approve_announcements`) | Approves a pending announcement |
+| GET    | 🔒perm `/admin/role-changes/pending` (`approve_role_changes`) | Users with a pending role-change request |
+| POST   | 🔒perm `/admin/role-changes/<id>/approve` (`approve_role_changes`) | Approves the request: `role = requested_role`, clears the request |
 | GET    | 🔒admin `/admin/users/<id>/role` | Form to change a user's role/staff role/permissions — admin only, not a delegable permission |
 | POST   | 🔒admin `/admin/users/<id>/role` | Saves the change; redirects back with `?error=...` on invalid input |
+| GET    | 🔒 `/profile`                 | The logged-in user's own profile: info, role-change request status, delete-account form |
+| POST   | 🔒 `/profile/request-role-change` | Requests switching role (student↔alumni); takes effect only once approved |
+| POST   | 🔒 `/profile/delete`          | Deletes the user's own account; redirects back with a friendly error if they still have job postings/applications/announcements |
+| GET    | 🔒 `/profile/job-postings`    | The user's own job postings, any status, with edit/delete |
+| GET    | 🔒 `/profile/applications`    | The user's own job applications, with delete |
+| GET    | 🔒 `/profile/announcements`   | The user's own announcements, any status, with edit/delete |
 
 > **Project rule:** `/api/swagger` is generated dynamically from the docstrings on each route, so it always reflects the current endpoints automatically. Whenever a new endpoint is added, give it a short YAML docstring (see the existing routes for examples) so it shows up in Swagger — then just visit `/api/swagger` in a browser to confirm it picked it up.
 

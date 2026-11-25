@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from middleware.auth import STAFF_ROLES, require_role_api
+from middleware.auth import require_owner_or_staff_api, require_role_api
 from models.job_application import JobApplication
 from models.job_posting import JobPosting
 
@@ -98,23 +98,22 @@ def job_posting_item(job_posting_id):
       200:
         description: The job posting (or the updated/deleted version)
       401:
-        description: Login required (DELETE only)
+        description: Login required (PUT/PATCH/DELETE only)
       403:
-        description: Logged in but not staff (DELETE only)
+        description: Logged in but neither the poster nor staff (PUT/PATCH/DELETE only)
       404:
         description: Job posting not found
     """
-    if request.method == "DELETE":
-        guard = require_role_api(*STAFF_ROLES)
-        if guard:
-            return guard
-
     job_posting = JobPosting.get_by_id(job_posting_id)
     if job_posting is None:
         return jsonify(error="Job posting not found"), 404
 
     if request.method == "GET":
         return jsonify(job_posting)
+
+    guard = require_owner_or_staff_api(job_posting["posted_by"])
+    if guard:
+        return guard
 
     if request.method == "PUT":
         updated = JobPosting.update(

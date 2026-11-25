@@ -136,6 +136,67 @@ main.container {
     color: #ffffff;
 }
 
+/* Account menu (nav dropdown) */
+
+.account-menu {
+    position: relative;
+}
+
+.account-menu summary {
+    font-family: var(--font-family-heading);
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    list-style: none;
+}
+
+.account-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.account-menu summary::after {
+    content: " \25BE";
+}
+
+.account-menu > ul {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--space-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) 0;
+    display: block;
+    min-width: 180px;
+    z-index: 20;
+}
+
+.account-menu > ul li {
+    display: block;
+}
+
+.account-menu > ul a,
+.account-menu > ul button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--space-xs) var(--space-md);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    font-weight: 400;
+    font-style: normal;
+    opacity: 1;
+    background: none;
+    border: none;
+}
+
+.account-menu > ul a:hover,
+.account-menu > ul button:hover {
+    background: var(--color-background);
+    color: var(--color-accent);
+}
+
 /* Buttons */
 
 .btn {

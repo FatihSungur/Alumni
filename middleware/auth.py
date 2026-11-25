@@ -45,6 +45,23 @@ def require_permission(permission):
     return render_template("403.html"), 403
 
 
+def require_owner_or_staff(owner_id):
+    """Call inline, for routes that mutate one specific record (edit/delete a
+    job posting, announcement, application...). The record's own
+    owner — whoever's id matches owner_id — may act on it, and so may any
+    staff member; anyone else is forbidden, even if logged in."""
+    if "user_id" not in session:
+        return redirect(url_for("auth.login", error="Please log in to continue"))
+
+    if session.get("staff_role") in STAFF_ROLES:
+        return None
+
+    if session.get("user_id") == owner_id:
+        return None
+
+    return render_template("403.html"), 403
+
+
 def require_role_api(*allowed_roles):
     """Same idea as require_role, but for JSON API routes: a redirect to an
     HTML login page makes no sense for an API client, so this returns a JSON
@@ -57,6 +74,20 @@ def require_role_api(*allowed_roles):
         return jsonify(error="You don't have permission to do this"), 403
 
     return None
+
+
+def require_owner_or_staff_api(owner_id):
+    """Same idea as require_owner_or_staff, but JSON instead of a redirect/page."""
+    if "user_id" not in session:
+        return jsonify(error="Login required"), 401
+
+    if session.get("staff_role") in STAFF_ROLES:
+        return None
+
+    if session.get("user_id") == owner_id:
+        return None
+
+    return jsonify(error="You don't have permission to do this"), 403
 
 
 def login_required(view_func):

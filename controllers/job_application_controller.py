@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 
-from middleware.auth import require_role, staff_required
+from middleware.auth import require_owner_or_staff, require_role
 from models.job_application import JobApplication
 
 job_application_bp = Blueprint("job_application", __name__, url_prefix="/applications")
@@ -54,10 +54,9 @@ def job_applications_collection():
 
 
 @job_application_bp.route("/<int:application_id>/delete", methods=["POST"])
-@staff_required
 def delete_job_application(application_id):
     """
-    Delete a job application. Requires an admin or moderator session.
+    Delete a job application. Requires being the applicant, or staff.
     ---
     tags:
       - JobApplicationController
@@ -70,13 +69,17 @@ def delete_job_application(application_id):
       302:
         description: Redirect back to the list after deleting
       403:
-        description: Logged in but not staff (admin/moderator)
+        description: Logged in but neither the applicant nor staff
       404:
         description: Application not found
     """
     application = JobApplication.get_by_id(application_id)
     if application is None:
         return render_template("404.html"), 404
+
+    guard = require_owner_or_staff(application["user_id"])
+    if guard:
+        return guard
 
     JobApplication.delete(application_id)
     return redirect(url_for("job_application.job_applications_collection"))

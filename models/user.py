@@ -3,7 +3,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from models.db import get_connection
 
-COLUMNS = "id, first_name, last_name, graduation_year, email, role, staff_role, status"
+COLUMNS = "id, first_name, last_name, graduation_year, email, role, staff_role, status, requested_role"
 ROLES = ("alumni", "student")
 STAFF_ROLES = ("admin", "moderator")
 PERMISSIONS = (
@@ -12,6 +12,7 @@ PERMISSIONS = (
     "add_users",
     "approve_job_postings",
     "approve_announcements",
+    "approve_role_changes",
 )
 
 
@@ -162,6 +163,54 @@ class User:
         connection.commit()
         cursor.close()
         connection.close()
+
+    @staticmethod
+    def request_role_change(user_id, requested_role):
+        """A student asking to become alumni (or vice versa) — stays as
+        their current role, functionally, until a staff member approves."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"UPDATE users SET requested_role = %s WHERE id = %s RETURNING {COLUMNS}",
+            (requested_role, user_id),
+        )
+        user = cursor.fetchone()
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return user
+
+    @staticmethod
+    def get_pending_role_changes():
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"SELECT {COLUMNS} FROM users WHERE requested_role IS NOT NULL ORDER BY id"
+        )
+        users = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return users
+
+    @staticmethod
+    def approve_role_change(user_id):
+        """Promotes role to whatever was requested, then clears the request."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"""
+            UPDATE users
+            SET role = requested_role, requested_role = NULL
+            WHERE id = %s
+            RETURNING {COLUMNS}
+            """,
+            (user_id,),
+        )
+        user = cursor.fetchone()
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return user
 
     @staticmethod
     def create(first_name, last_name, graduation_year, email):

@@ -16,7 +16,9 @@
             <th>Title</th>
             <th>Content</th>
             <th>Date</th>
+            {% if session.staff_role in ("admin", "moderator") %}
             <th>Actions</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -26,12 +28,14 @@
             <td>{{ announcement.title }}</td>
             <td>{{ announcement.content }}</td>
             <td>{{ announcement.date }}</td>
+            {% if session.staff_role in ("admin", "moderator") %}
             <td>
                 <a href="/announcements/{{ announcement.id }}/edit">Edit</a>
                 <form method="POST" action="/announcements/{{ announcement.id }}/delete" style="display:inline">
                     <button type="submit" class="btn btn-small">Delete</button>
                 </form>
             </td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>
@@ -41,6 +45,7 @@
     </tbody>
 </table>
 
+{% if session.user_id %}
 <h2>Add a new announcement</h2>
 <form method="POST" action="/announcements">
     <label>Title: <input type="text" name="title"></label>
@@ -48,4 +53,5 @@
     <label>Date: <input type="text" name="date"></label>
     <button type="submit" class="btn">Create</button>
 </form>
+{% endif %}
 {% endblock %}

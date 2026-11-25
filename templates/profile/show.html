@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - My Profile{% endblock %}
+
+{% block content %}
+<h1>My Profile</h1>
+
+{% if error %}
+<p class="form-error">{{ error }}</p>
+{% endif %}
+
+<table>
+    <tbody>
+        <tr><th>Name</th><td>{{ user.first_name }} {{ user.last_name }}</td></tr>
+        <tr><th>Email</th><td>{{ user.email }}</td></tr>
+        <tr><th>Graduation year</th><td>{{ user.graduation_year }}</td></tr>
+        <tr><th>Role</th><td>{{ user.role }}</td></tr>
+        <tr><th>Staff role</th><td>{{ user.staff_role or "—" }}</td></tr>
+    </tbody>
+</table>
+
+<h2>Change role</h2>
+{% if user.requested_role %}
+<p>Your request to become <strong>{{ user.requested_role }}</strong> is pending staff approval.</p>
+{% else %}
+<form method="POST" action="/profile/request-role-change">
+    <button type="submit" class="btn">
+        {% if user.role == "student" %}Request to become Alumni{% else %}Request to become Student{% endif %}
+    </button>
+</form>
+{% endif %}
+
+<h2>Delete account</h2>
+<p>This cannot be undone. If you still have job postings, applications, or announcements, delete those first.</p>
+<form method="POST" action="/profile/delete">
+    <button type="submit" class="btn btn-small">Delete my account</button>
+</form>
+{% endblock %}
