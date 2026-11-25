@@ -64,7 +64,7 @@ def job_postings_collection():
         )
         return jsonify(job_posting), 201
 
-    return jsonify(JobPosting.get_all())
+    return jsonify(JobPosting.get_approved())
 
 
 @api_job_posting_bp.route("/<int:job_posting_id>", methods=["GET", "PUT", "PATCH", "DELETE"])

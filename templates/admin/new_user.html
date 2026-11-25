@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Add User{% endblock %}
+
+{% block content %}
+<h1>Add a User</h1>
+
+<form method="POST" action="/admin/users/new">
+    <label>First name: <input type="text" name="first_name"></label>
+    <label>Last name: <input type="text" name="last_name"></label>
+    <label>Graduation year: <input type="text" name="graduation_year"></label>
+    <label>Email: <input type="text" name="email"></label>
+    <button type="submit" class="btn">Create</button>
+</form>
+
+<p><a href="/admin">Back to admin panel</a></p>
+{% endblock %}

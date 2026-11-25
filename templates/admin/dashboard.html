@@ -6,20 +6,55 @@
 <h1>Admin Panel</h1>
 
 <div class="feature-grid">
+    {% if can_manage_users %}
     <div class="feature-card">
         <h3>Users</h3>
         <p>{{ user_count }} total</p>
         <a href="/admin/users">Manage roles</a> &middot; <a href="/users">View directory</a>
     </div>
+    {% endif %}
+
+    {% if can_add_users %}
     <div class="feature-card">
-        <h3>Announcements</h3>
-        <p>{{ announcement_count }} total</p>
-        <a href="/announcements">Manage</a>
+        <h3>Add a User</h3>
+        <p>Create an account directly, already approved.</p>
+        <a href="/admin/users/new">Add user</a>
     </div>
+    {% endif %}
+
+    {% if can_approve_users %}
+    <div class="feature-card">
+        <h3>Pending Registrations</h3>
+        <p>{{ pending_user_count }} awaiting approval</p>
+        <a href="/admin/users/pending">Review</a>
+    </div>
+    {% endif %}
+
+    {% if can_approve_job_postings %}
+    <div class="feature-card">
+        <h3>Pending Job Postings</h3>
+        <p>{{ pending_job_posting_count }} awaiting approval</p>
+        <a href="/admin/job-postings/pending">Review</a>
+    </div>
+    {% endif %}
+
+    {% if can_approve_announcements %}
+    <div class="feature-card">
+        <h3>Pending Announcements</h3>
+        <p>{{ pending_announcement_count }} awaiting approval</p>
+        <a href="/admin/announcements/pending">Review</a>
+    </div>
+    {% endif %}
+
     <div class="feature-card">
         <h3>Job Postings</h3>
         <p>{{ job_posting_count }} total</p>
         <a href="/job-postings">Manage</a>
+    </div>
+    <div class="feature-card">
+        <h3>Announcements</h3>
+        <p>{{ announcement_count }} total</p>
+        <a href="/announcements">Manage</a>
     </div>
     <div class="feature-card">
         <h3>Applications</h3>

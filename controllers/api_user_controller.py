@@ -49,7 +49,7 @@ def users_collection():
         )
         return jsonify(user), 201
 
-    return jsonify(User.get_all())
+    return jsonify(User.get_approved())
 
 
 @api_user_bp.route("/<int:user_id>", methods=["PUT", "PATCH", "DELETE"])

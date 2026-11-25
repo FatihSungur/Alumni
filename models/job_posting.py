@@ -1,6 +1,6 @@
 from models.db import get_connection
 
-COLUMNS = "id, title, company, description, location, posted_by, posted_date"
+COLUMNS = "id, title, company, description, location, posted_by, posted_date, status"
 
 
 class JobPosting:
@@ -25,8 +25,8 @@ class JobPosting:
         cursor = connection.cursor()
         cursor.execute(
             f"""
-            INSERT INTO job_postings (title, company, description, location, posted_by, posted_date)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO job_postings (title, company, description, location, posted_by, posted_date, status)
+            VALUES (%s, %s, %s, %s, %s, %s, 'pending')
             RETURNING {COLUMNS}
             """,
             (title, company, description, location, posted_by, posted_date),
@@ -46,6 +46,42 @@ class JobPosting:
         cursor.close()
         connection.close()
         return job_postings
+
+    @staticmethod
+    def get_approved():
+        """What guests/students/alumni see — pending postings are hidden
+        until a moderator or admin approves them."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT {COLUMNS} FROM job_postings WHERE status = 'approved' ORDER BY id")
+        job_postings = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return job_postings
+
+    @staticmethod
+    def get_pending():
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT {COLUMNS} FROM job_postings WHERE status = 'pending' ORDER BY id")
+        job_postings = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return job_postings
+
+    @staticmethod
+    def approve(job_posting_id):
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"UPDATE job_postings SET status = 'approved' WHERE id = %s RETURNING {COLUMNS}",
+            (job_posting_id,),
+        )
+        job_posting = cursor.fetchone()
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return job_posting
 
     @staticmethod
     def get_by_id(job_posting_id):

@@ -25,6 +25,15 @@
             {% endfor %}
         </select>
     </label>
+
+    <p><em>Permissions below only apply if Staff role is set to "moderator" — ignored for admin (full access) or no staff role.</em></p>
+    {% for permission in permissions %}
+    <label>
+        <input type="checkbox" name="permissions" value="{{ permission }}" {% if permission in granted_permissions %}checked{% endif %}>
+        {{ permission }}
+    </label>
+    {% endfor %}
+
     <button type="submit" class="btn">Save</button>
 </form>
 

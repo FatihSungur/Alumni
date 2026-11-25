@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Pending Job Postings{% endblock %}
+
+{% block content %}
+<h1>Pending Job Postings</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Company</th>
+            <th>Posted By (user id)</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job_posting in job_postings %}
+        <tr>
+            <td>{{ job_posting.id }}</td>
+            <td>{{ job_posting.title }}</td>
+            <td>{{ job_posting.company }}</td>
+            <td>{{ job_posting.posted_by }}</td>
+            <td>
+                <form method="POST" action="/admin/job-postings/{{ job_posting.id }}/approve" style="display:inline">
+                    <button type="submit" class="btn btn-small">Approve</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="5">Nothing pending.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/admin">Back to admin panel</a></p>
+{% endblock %}

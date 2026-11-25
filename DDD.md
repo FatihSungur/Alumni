@@ -25,6 +25,8 @@ Backs the `User` model (`models/user.py`). Represents one alumni record.
 | `email`           | `VARCHAR(255)` | `NOT NULL`, `UNIQUE`         | Two alumni records should not share an email |
 | `role`            | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'alumni'`, `CHECK (role IN ('alumni', 'student'))` | Added in `migrations/003_...sql` — see **User Roles & Permissions** below |
 | `password_hash`   | `VARCHAR(255)` | nullable                     | Added in the same migration. Nullable because seeded/demo users (created via `User.create`, not `User.register`) have no login credentials — only accounts created through `/register` get one |
+| `staff_role`      | `VARCHAR(20)`  | nullable, `CHECK (staff_role IN ('admin', 'moderator'))` | Added in `migrations/004_...sql`. `NULL` = no elevated privileges. Never set by the user themselves — only via `/admin/users/<id>/role`, admin-only |
+| `status`          | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'approved'`, `CHECK (status IN ('pending', 'approved'))` | Added in `migrations/005_...sql`. `/register` inserts `'pending'` explicitly; everything else (factories, `/admin/users/new`) rides the default |
 
 ```sql
 CREATE TABLE users (
@@ -39,6 +41,14 @@ CREATE TABLE users (
 ALTER TABLE users
     ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'alumni' CHECK (role IN ('alumni', 'student')),
     ADD COLUMN password_hash VARCHAR(255);
+
+-- migrations/004_add_staff_roles.sql
+ALTER TABLE users
+    ADD COLUMN staff_role VARCHAR(20) CHECK (staff_role IN ('admin', 'moderator'));
+
+-- migrations/005_add_permissions_and_approval_status.sql
+ALTER TABLE users
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved'));
 ```
 
 ### Table: `announcements`
@@ -51,6 +61,7 @@ Backs the `Announcement` model (`models/announcement.py`). Represents one announ
 | `title`   | `VARCHAR(200)` | `NOT NULL`        |                                       |
 | `content` | `TEXT`         | `NOT NULL`        | Longer free text, unlike title       |
 | `date`    | `DATE`         | `NOT NULL`        |                                       |
+| `status`  | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'approved'`, `CHECK (status IN ('pending', 'approved'))` | Added in `migrations/005_...sql` — see **Approval workflow** below |
 
 ```sql
 CREATE TABLE announcements (
@@ -59,6 +70,10 @@ CREATE TABLE announcements (
     content TEXT NOT NULL,
     date DATE NOT NULL
 );
+
+-- migrations/005_add_permissions_and_approval_status.sql
+ALTER TABLE announcements
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved'));
 ```
 
 ### Table: `job_postings`
@@ -74,6 +89,7 @@ A new entity: one job posting shared by an alumnus. This is the first table with
 | `location`    | `VARCHAR(150)` | `NOT NULL`                             |                                                       |
 | `posted_by`   | `INTEGER`      | `NOT NULL`, `REFERENCES users(id)`     | The alumnus who posted this job — the "many" side of the one-to-many relationship with `users` |
 | `posted_date` | `DATE`         | `NOT NULL`                             |                                                       |
+| `status`      | `VARCHAR(20)`  | `NOT NULL`, `DEFAULT 'approved'`, `CHECK (status IN ('pending', 'approved'))` | Added in `migrations/005_...sql` — see **Approval workflow** below |
 
 ```sql
 CREATE TABLE job_postings (
@@ -85,6 +101,10 @@ CREATE TABLE job_postings (
     posted_by INTEGER NOT NULL REFERENCES users(id),
     posted_date DATE NOT NULL
 );
+
+-- migrations/005_add_permissions_and_approval_status.sql
+ALTER TABLE job_postings
+    ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved'));
 ```
 
 ### Table: `job_applications`
@@ -252,9 +272,13 @@ An admin UI to manage this is a natural future task, not built yet.
 | Apply to a job posting | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Create a job posting | ❌ | ❌ | ✅ | ❌* | ❌* |
 | Delete any user / announcement / job posting / application | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Approve a pending user / job posting / announcement | ❌ | ❌ | ❌ | per permission† | ✅ |
+| Manage users / add a user / grant roles | ❌ | ❌ | ❌ | per permission†, never roles | ✅ |
 | Register an account | ✅ → becomes Student or Alumni | — | — | — | — |
 
 \* a moderator/admin who is *also* `alumni` can create one — through the `alumni` role, not the staff role. `staff_role` only ever grants the delete/moderation row.
+
+† unlike delete, these are **not** blanket "any staff member can" rows — each one requires a specific permission granted to that moderator individually (see **Moderator permissions** under "Admin panel" below). The table above shows what's *possible* for the role; `moderator_permissions` decides what's *actually granted* to a given moderator.
 
 The reasoning: job postings represent an alumnus sharing an opportunity from their own career, so only the `alumni` role can create one; every logged-in account can apply. Destructive actions (delete) are the one thing that genuinely needs a step up from "any member" to "staff", which is exactly what `admin`/`moderator` are for. Read-only actions (announcements, job postings) stay open to guests, since there's no reason to gate information with no side effects.
 
@@ -283,15 +307,54 @@ Both ultimately check `session` the same way: not logged in → **401 isn't used
 - **`401 Unauthorized`** — no session at all ("I don't know who you are").
 - **`403 Forbidden`** — a session exists, but that role isn't allowed to do this ("I know who you are, and the answer is no").
 
+**`require_permission(permission)`** is a third variant, for the admin panel specifically (see below): instead of a fixed list of roles, it checks a *named capability* — `admin` always passes, a `moderator` passes only if granted that exact permission, anyone else is `403`.
+
 Guarded today: viewing the alumni directory (`/users`, `/api/users`), applying to a job posting, creating a job posting (`alumni` only), and every delete route across users/announcements/job postings/applications (`staff_required`, both HTML and API). Verified live with guest/student/alumni/admin accounts hitting each guarded route — a student gets `403` creating or deleting, a guest gets redirected/`401`, an alumnus can create but not delete, and only an account with `staff_role` set can delete.
 
 **Still open:** editing (as opposed to deleting) a record isn't gated — e.g. any logged-in session can currently edit any job posting, not just its own. Doing that properly needs an *ownership* check (is this job posting's `posted_by` the current session's `user_id`?), which is a different, more granular kind of authorization than the role check here — left for a future task rather than guessed at now.
 
 ### Admin panel (`/admin`, `controllers/admin_controller.py`)
 
-The one place `staff_role` itself gets assigned through the UI instead of a raw SQL `UPDATE`. Deliberately a narrower gate than `staff_required`: the whole blueprint is wrapped in a single `@admin_bp.before_request` hook calling `require_role("admin")` — **not** `staff_required` (which also admits `moderator`). The reasoning: a moderator can already delete content everywhere (`staff_required` on those routes), but letting a moderator *grant admin/moderator to anyone else* would be a privilege-escalation hole — only an actual admin manages who else has elevated access. Verified live: a `moderator`-only account gets `403` on `/admin` but can still successfully delete elsewhere, exactly the split the design calls for.
+The one place `staff_role` itself gets assigned through the UI instead of a raw SQL `UPDATE`. The panel is now open to **both** `admin` and `moderator` (`@admin_bp.before_request` calls `require_role(*STAFF_ROLES)`), but what a moderator can actually *do* once inside is controlled feature-by-feature — see **Moderator permissions** below. One route is the deliberate exception and stays admin-only regardless: granting roles to someone else.
 
-- **`GET /admin`** — dashboard: record counts per entity, linking out to the existing list pages (`/users`, `/announcements`, `/job-postings`, `/applications`) rather than re-implementing their CRUD; those already support delete for staff.
-- **`GET /admin/users`** — every user with `role`/`staff_role` visible (the public `/users` directory intentionally doesn't show these — they're not everyone's business).
-- **`GET/POST /admin/users/<id>/role`** — the form that calls `User.set_roles(...)`, validated by `User.validate_roles(...)` (role must be `alumni`/`student`; staff role must be empty, `admin`, or `moderator`). Same redirect-with-`?error=` pattern as every other form in this app.
-- The nav (`templates/base.html`) only shows an "Admin Panel" link when `session.staff_role == "admin"` — hiding the entry point from everyone else, though the real enforcement is the `before_request` guard, not the hidden link (a hidden link is not security).
+#### Moderator permissions (`moderator_permissions` table, `migrations/005_...sql`)
+
+An `admin` always has every capability — nothing to configure, nothing to ask, it just works. A `moderator` has **only** the specific capabilities an admin has explicitly granted, tracked in a junction table (the same many-to-many pattern as `job_applications`: one moderator can hold many permissions, one permission can be held by many moderators):
+
+```sql
+CREATE TABLE moderator_permissions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    permission VARCHAR(30) NOT NULL CHECK (permission IN (
+        'approve_users', 'manage_users', 'add_users',
+        'approve_job_postings', 'approve_announcements'
+    )),
+    UNIQUE (user_id, permission)
+);
+```
+
+`middleware/auth.py`'s **`require_permission(permission)`** is the check: an `admin` session passes immediately; a `moderator` session passes only if that exact string is in `session["permissions"]` (loaded once at login from `moderator_permissions`, not re-queried per request); anyone else — including a plain `alumni`/`student`, even one who is logged in — gets `403`. **Granting the roles and permissions themselves is never one of the permissions** — `POST /admin/users/<id>/role` calls `require_role("admin")` directly, bypassing the blueprint's more permissive moderator-admitting gate, so a moderator can never hand out admin/moderator or edit anyone's permission set, no matter what they've been granted elsewhere. That would be a privilege-escalation hole otherwise.
+
+Routes and their permission:
+
+| Route | Permission required |
+|---|---|
+| `GET /admin` | any staff (dashboard only shows the cards this session can use) |
+| `GET /admin/users` | `manage_users` |
+| `GET/POST /admin/users/new` | `add_users` |
+| `GET /admin/users/pending`, `POST .../approve` | `approve_users` |
+| `GET /admin/job-postings/pending`, `POST .../approve` | `approve_job_postings` |
+| `GET /admin/announcements/pending`, `POST .../approve` | `approve_announcements` |
+| `GET/POST /admin/users/<id>/role` | **`admin` only**, not delegable |
+
+Verified live: a moderator granted only `approve_job_postings` sees exactly one feature card on the dashboard, gets `200` on `/admin/job-postings/pending` and can approve from there, but gets `403` on `/admin/users`, `/admin/announcements/pending`, and `/admin/users/<id>/role` — while a plain delete elsewhere (`staff_required`, unrelated to this permission system) still works, since that was never gated per-permission.
+
+The nav (`templates/base.html`) shows the "Admin Panel" link for `session.staff_role in ("admin", "moderator")` — but as always, the hidden/shown link is a convenience, not the security boundary; the real check is server-side on every request.
+
+#### Approval workflow (`status` column on `users`, `job_postings`, `announcements`)
+
+Three tables gained a `status` column (`'pending'` / `'approved'`, `DEFAULT 'approved'` so every existing row — and anything inserted by factories/seed/the old ad-hoc create flows that don't mention it — is grandfathered in untouched):
+
+- **`POST /register`** now inserts `status = 'pending'` explicitly. **`POST /login` refuses a pending account** with "Your account is still pending admin approval" — approval is a real access gate, not just a label. An admin, or a moderator with `approve_users`, approves from `/admin/users/pending`.
+- **`POST /job-postings`** (alumni creating a listing) and **`POST /announcements`** (anyone) also insert `'pending'`. `JobPosting.get_approved()` / `Announcement.get_approved()` are what the public list pages and the JSON API now query — a pending posting or announcement simply doesn't exist yet as far as a guest, student, or alumnus browsing the site is concerned, until `approve_job_postings` / `approve_announcements` clears it.
+- `User.create()` (the admin's "add a user" flow, and factories/seed) never sets `status` at all, so it rides the `DEFAULT 'approved'` — a user an admin adds directly doesn't need to also approve themselves.

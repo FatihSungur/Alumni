@@ -52,7 +52,7 @@
                 <li><a href="/job-postings">Job Postings</a></li>
                 <li><a href="/applications">Applications</a></li>
                 <li><a href="/about">About</a></li>
-                {% if session.staff_role == "admin" %}
+                {% if session.staff_role in ("admin", "moderator") %}
                 <li><a href="/admin">Admin Panel</a></li>
                 {% endif %}
                 {% if session.user_id %}

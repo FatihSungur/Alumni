@@ -1,6 +1,6 @@
 from models.db import get_connection
 
-COLUMNS = "id, title, content, date"
+COLUMNS = "id, title, content, date, status"
 
 
 class Announcement:
@@ -10,8 +10,8 @@ class Announcement:
         cursor = connection.cursor()
         cursor.execute(
             f"""
-            INSERT INTO announcements (title, content, date)
-            VALUES (%s, %s, %s)
+            INSERT INTO announcements (title, content, date, status)
+            VALUES (%s, %s, %s, 'pending')
             RETURNING {COLUMNS}
             """,
             (title, content, date),
@@ -31,6 +31,40 @@ class Announcement:
         cursor.close()
         connection.close()
         return announcements
+
+    @staticmethod
+    def get_approved():
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT {COLUMNS} FROM announcements WHERE status = 'approved' ORDER BY id")
+        announcements = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return announcements
+
+    @staticmethod
+    def get_pending():
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT {COLUMNS} FROM announcements WHERE status = 'pending' ORDER BY id")
+        announcements = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return announcements
+
+    @staticmethod
+    def approve(announcement_id):
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"UPDATE announcements SET status = 'approved' WHERE id = %s RETURNING {COLUMNS}",
+            (announcement_id,),
+        )
+        announcement = cursor.fetchone()
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return announcement
 
     @staticmethod
     def get_by_id(announcement_id):

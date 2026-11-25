@@ -11,9 +11,12 @@
             <th>ID</th>
             <th>Name</th>
             <th>Email</th>
+            <th>Status</th>
             <th>Role</th>
             <th>Staff Role</th>
+            {% if is_admin %}
             <th>Actions</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -22,13 +25,16 @@
             <td>{{ user.id }}</td>
             <td>{{ user.first_name }} {{ user.last_name }}</td>
             <td>{{ user.email }}</td>
+            <td>{{ user.status }}</td>
             <td>{{ user.role }}</td>
             <td>{{ user.staff_role or "—" }}</td>
+            {% if is_admin %}
             <td><a href="/admin/users/{{ user.id }}/role">Edit role</a></td>
+            {% endif %}
         </tr>
         {% else %}
         <tr>
-            <td colspan="6">No users yet.</td>
+            <td colspan="7">No users yet.</td>
         </tr>
         {% endfor %}
     </tbody>

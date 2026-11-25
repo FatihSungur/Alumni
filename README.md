@@ -62,9 +62,13 @@ Alumni-Web-Programming/
 │   ├── register.html                   # Account creation form (role: alumni or student)
 │   ├── login.html                      # Login form
 │   ├── admin/
-│   │   ├── dashboard.html               # Admin panel home: record counts + links
-│   │   ├── users.html                   # Every user with their role/staff_role
-│   │   └── edit_role.html               # Form to change a user's role/staff_role
+│   │   ├── dashboard.html               # Admin panel home: record counts + links, filtered to what this session can use
+│   │   ├── users.html                   # Every user with their role/staff_role (manage_users)
+│   │   ├── new_user.html                # Create a user account directly, already approved (add_users)
+│   │   ├── pending_users.html           # Registrations awaiting approval (approve_users)
+│   │   ├── pending_job_postings.html    # Job postings awaiting approval (approve_job_postings)
+│   │   ├── pending_announcements.html   # Announcements awaiting approval (approve_announcements)
+│   │   └── edit_role.html               # Form to change a user's role/staff_role/permissions (admin only)
 │   ├── users/
 │   │   ├── list.html                   # Lists all users + a form to create a new one
 │   │   └── edit.html                   # Pre-filled form to edit a single user
@@ -80,7 +84,8 @@ Alumni-Web-Programming/
 │   ├── 001_create_tables.sql           # Creates the `users` and `announcements` tables (see DDD.md)
 │   ├── 002_create_job_postings_and_applications.sql # Creates `job_postings` + `job_applications`
 │   ├── 003_add_user_roles_and_auth.sql  # Adds `role` and `password_hash` to `users` (see DDD.md)
-│   └── 004_add_staff_roles.sql          # Adds `staff_role` ('admin'/'moderator') to `users` (see DDD.md)
+│   ├── 004_add_staff_roles.sql          # Adds `staff_role` ('admin'/'moderator') to `users` (see DDD.md)
+│   └── 005_add_permissions_and_approval_status.sql # Adds `moderator_permissions` + `status` on users/job_postings/announcements (see DDD.md)
 ├── factories/
 │   ├── __init__.py
 │   ├── user_factory.py                 # Generates realistic fake user data (via Faker)
@@ -151,7 +156,7 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 
 ## API Endpoints
 
-> **Auth guardian:** routes marked 🔒 require a login session, 🔒staff require `admin`/`moderator`, and 🔒admin require `admin` specifically (a moderator can't grant staff roles to others). A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role on any of them returns `403`. See [DDD.md](./DDD.md#auth-guardian-middlewareauthpy) for the full permissions table.
+> **Auth guardian:** routes marked 🔒 require a login session, 🔒staff require `admin`/`moderator`, and 🔒perm require a specific permission (an `admin` always has it; a `moderator` only if granted — see [DDD.md](./DDD.md#moderator-permissions-moderator_permissions-table-migrations005sql)) except `/admin/users/<id>/role`, which is 🔒admin-only even for moderators. A guest hitting an HTML 🔒 route is redirected to `/login`; an API 🔒 route returns `401`. The wrong role/permission on any of them returns `403`.
 
 | Method | Path                          | Description                          |
 |--------|-------------------------------|---------------------------------------|
@@ -161,7 +166,7 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | GET    | `/sum/<number1>/<number2>`    | Returns the sum of two numbers        |
 | GET    | `/about`                      | Temporary about page                  |
 | GET    | `/register`                   | HTML registration form (role: alumni or student) |
-| POST   | `/register`                   | Creates an account (hashes the password) and redirects home; redirects back with `?error=...` on invalid data or a duplicate email (see DDD.md) |
+| POST   | `/register`                   | Creates an account (hashes the password, `status='pending'`) and redirects to `/login`; redirects back with `?error=...` on invalid data or a duplicate email. Pending accounts can't log in until a staff member approves them (see DDD.md) |
 | GET    | `/login`                      | HTML login form |
 | POST   | `/login`                      | Verifies email/password and starts a session; redirects back with `?error=...` on failure |
 | POST   | `/logout`                     | Clears the session and redirects home |
@@ -176,8 +181,8 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | PUT    | `/api/users/<id>`             | Replaces all fields of the record with the given `id` and returns it as JSON |
 | PATCH  | `/api/users/<id>`             | Updates only the given fields of the record with the given `id` and returns it as JSON |
 | DELETE | 🔒staff `/api/users/<id>`     | Deletes the record with the given `id` and returns the deleted record as JSON |
-| GET    | `/announcements`              | HTML page listing announcements, with a form to create a new one (AnnouncementController) |
-| POST   | `/announcements`              | Creates an announcement from the HTML form and redirects back to the list |
+| GET    | `/announcements`              | HTML page listing **approved** announcements, with a form to create a new one (AnnouncementController) |
+| POST   | `/announcements`              | Creates an announcement (`status='pending'`) and redirects back with a submitted-for-approval message; it won't appear in the list until staff approves it |
 | GET    | `/announcements/<id>/edit`    | HTML form pre-filled with the announcement's current data |
 | POST   | `/announcements/<id>/edit`    | Saves the edited announcement and redirects back to the list |
 | POST   | 🔒staff `/announcements/<id>/delete` | Deletes the announcement and redirects back to the list |
@@ -186,8 +191,8 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | PUT    | `/api/announcements/<id>`     | Replaces all fields of the announcement with the given `id` and returns it as JSON |
 | PATCH  | `/api/announcements/<id>`     | Updates only the given fields of the announcement with the given `id` and returns it as JSON |
 | DELETE | 🔒staff `/api/announcements/<id>` | Deletes the announcement with the given `id` and returns the deleted record as JSON |
-| GET    | `/job-postings`               | HTML page listing job postings, with a form to create a new one (JobPostingController) |
-| POST   | 🔒 `/job-postings`            | Creates a job posting from the HTML form (`alumni` role only, `403` otherwise) and redirects back to the list; redirects back with `?error=...` instead if `title`/`company` fail validation (see DDD.md) |
+| GET    | `/job-postings`               | HTML page listing **approved** job postings, with a form to create a new one (JobPostingController) |
+| POST   | 🔒 `/job-postings`            | Creates a job posting (`status='pending'`) from the HTML form (`alumni` role only, `403` otherwise); redirects back with a submitted-for-approval message, or with `?error=...` if `title`/`company` fail validation (see DDD.md) |
 | GET    | `/job-postings/<id>/edit`     | HTML form pre-filled with the job posting's current data |
 | POST   | `/job-postings/<id>/edit`     | Saves the edited job posting and redirects back to the list |
 | POST   | 🔒staff `/job-postings/<id>/delete` | Deletes the job posting and redirects back to the list |
@@ -202,10 +207,17 @@ The app will be available at `http://localhost:5000`. In practice, Docker Compos
 | GET    | `/api/users/<id>/job-postings` | Nested route: list every job posting created by this user (one-to-many) |
 | GET    | `/api/users/<id>/applications` | Nested route: list every job this user applied to (many-to-many) |
 | GET    | `/api/swagger`                | Interactive Swagger UI (powered by [flasgger](https://github.com/flasgger/flasgger)) listing every documented route |
-| GET    | 🔒admin `/admin`              | Admin panel home: record counts + links to manage each entity |
-| GET    | 🔒admin `/admin/users`        | Every user with their `role`/`staff_role` visible |
-| GET    | 🔒admin `/admin/users/<id>/role` | Form to change a user's role/staff role |
-| POST   | 🔒admin `/admin/users/<id>/role` | Saves the role change; redirects back with `?error=...` on invalid input |
+| GET    | 🔒staff `/admin`              | Admin panel home: record counts + links, filtered to what this session is permitted to use |
+| GET    | 🔒perm `/admin/users` (`manage_users`) | Every user with their `role`/`staff_role` visible |
+| GET/POST | 🔒perm `/admin/users/new` (`add_users`) | Create a user account directly, already approved |
+| GET    | 🔒perm `/admin/users/pending` (`approve_users`) | Registrations awaiting approval |
+| POST   | 🔒perm `/admin/users/<id>/approve` (`approve_users`) | Approves a pending registration |
+| GET    | 🔒perm `/admin/job-postings/pending` (`approve_job_postings`) | Job postings awaiting approval |
+| POST   | 🔒perm `/admin/job-postings/<id>/approve` (`approve_job_postings`) | Approves a pending job posting |
+| GET    | 🔒perm `/admin/announcements/pending` (`approve_announcements`) | Announcements awaiting approval |
+| POST   | 🔒perm `/admin/announcements/<id>/approve` (`approve_announcements`) | Approves a pending announcement |
+| GET    | 🔒admin `/admin/users/<id>/role` | Form to change a user's role/staff role/permissions — admin only, not a delegable permission |
+| POST   | 🔒admin `/admin/users/<id>/role` | Saves the change; redirects back with `?error=...` on invalid input |
 
 > **Project rule:** `/api/swagger` is generated dynamically from the docstrings on each route, so it always reflects the current endpoints automatically. Whenever a new endpoint is added, give it a short YAML docstring (see the existing routes for examples) so it shows up in Swagger — then just visit `/api/swagger` in a browser to confirm it picked it up.
 

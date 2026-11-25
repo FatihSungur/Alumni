@@ -5,6 +5,10 @@
 {% block content %}
 <h1>Announcements</h1>
 
+{% if error %}
+<p class="form-error">{{ error }}</p>
+{% endif %}
+
 <table>
     <thead>
         <tr>

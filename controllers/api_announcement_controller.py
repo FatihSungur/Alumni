@@ -39,7 +39,7 @@ def announcements_collection():
         )
         return jsonify(announcement), 201
 
-    return jsonify(Announcement.get_all())
+    return jsonify(Announcement.get_approved())
 
 
 @api_announcement_bp.route("/<int:announcement_id>", methods=["PUT", "PATCH", "DELETE"])

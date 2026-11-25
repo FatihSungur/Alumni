@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Alumni - Pending Announcements{% endblock %}
+
+{% block content %}
+<h1>Pending Announcements</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for announcement in announcements %}
+        <tr>
+            <td>{{ announcement.id }}</td>
+            <td>{{ announcement.title }}</td>
+            <td>{{ announcement.date }}</td>
+            <td>
+                <form method="POST" action="/admin/announcements/{{ announcement.id }}/approve" style="display:inline">
+                    <button type="submit" class="btn btn-small">Approve</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">Nothing pending.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="/admin">Back to admin panel</a></p>
+{% endblock %}

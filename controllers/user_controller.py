@@ -42,7 +42,7 @@ def users_collection():
         )
         return redirect(url_for("user.users_collection"))
 
-    return render_template("users/list.html", users=User.get_all())
+    return render_template("users/list.html", users=User.get_approved())
 
 
 @user_bp.route("/<int:user_id>/edit", methods=["GET", "POST"])

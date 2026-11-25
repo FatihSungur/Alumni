@@ -35,9 +35,16 @@ def announcements_collection():
             request.form.get("content"),
             request.form.get("date"),
         )
-        return redirect(url_for("announcement.announcements_collection"))
+        return redirect(url_for(
+            "announcement.announcements_collection",
+            error="Announcement submitted. It will appear once approved by staff.",
+        ))
 
-    return render_template("announcements/list.html", announcements=Announcement.get_all())
+    return render_template(
+        "announcements/list.html",
+        announcements=Announcement.get_approved(),
+        error=request.args.get("error"),
+    )
 
 
 @announcement_bp.route("/<int:announcement_id>/edit", methods=["GET", "POST"])

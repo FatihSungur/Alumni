@@ -26,6 +26,25 @@ def require_role(*allowed_roles):
     return None
 
 
+def require_permission(permission):
+    """Call inline, like require_role. An admin always passes (full access,
+    nothing to ask). A moderator passes only if granted this specific
+    permission (session['permissions'], set at login from
+    moderator_permissions — see models/user.py). Anyone else, including a
+    plain alumni/student, is forbidden.
+    """
+    if "user_id" not in session:
+        return redirect(url_for("auth.login", error="Please log in to continue"))
+
+    if session.get("staff_role") == "admin":
+        return None
+
+    if session.get("staff_role") == "moderator" and permission in session.get("permissions", []):
+        return None
+
+    return render_template("403.html"), 403
+
+
 def require_role_api(*allowed_roles):
     """Same idea as require_role, but for JSON API routes: a redirect to an
     HTML login page makes no sense for an API client, so this returns a JSON

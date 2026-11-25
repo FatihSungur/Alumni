@@ -56,7 +56,10 @@ def register():
         if user is None:
             return redirect(url_for("auth.register", error="An account with this email already exists"))
 
-        return redirect(url_for("index"))
+        return redirect(url_for(
+            "auth.login",
+            error="Account created. An admin needs to approve it before you can log in.",
+        ))
 
     return render_template("register.html", error=request.args.get("error"))
 
@@ -89,10 +92,16 @@ def login():
         if not User.verify_password(user, password):
             return redirect(url_for("auth.login", error="Invalid email or password"))
 
+        if user["status"] == "pending":
+            return redirect(url_for("auth.login", error="Your account is still pending admin approval"))
+
         session["user_id"] = user["id"]
         session["first_name"] = user["first_name"]
         session["role"] = user["role"]
         session["staff_role"] = user["staff_role"]
+        session["permissions"] = (
+            User.get_permissions(user["id"]) if user["staff_role"] == "moderator" else []
+        )
         return redirect(url_for("index"))
 
     return render_template("login.html", error=request.args.get("error"))

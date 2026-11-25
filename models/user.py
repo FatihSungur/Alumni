@@ -3,9 +3,16 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from models.db import get_connection
 
-COLUMNS = "id, first_name, last_name, graduation_year, email, role, staff_role"
+COLUMNS = "id, first_name, last_name, graduation_year, email, role, staff_role, status"
 ROLES = ("alumni", "student")
 STAFF_ROLES = ("admin", "moderator")
+PERMISSIONS = (
+    "approve_users",
+    "manage_users",
+    "add_users",
+    "approve_job_postings",
+    "approve_announcements",
+)
 
 
 class User:
@@ -53,8 +60,8 @@ class User:
         try:
             cursor.execute(
                 f"""
-                INSERT INTO users (first_name, last_name, graduation_year, email, role, password_hash)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO users (first_name, last_name, graduation_year, email, role, password_hash, status)
+                VALUES (%s, %s, %s, %s, %s, %s, 'pending')
                 RETURNING {COLUMNS}
                 """,
                 (first_name, last_name, graduation_year, email, role, password_hash),
@@ -100,6 +107,63 @@ class User:
         return user
 
     @staticmethod
+    def get_pending():
+        """Registrations awaiting approval."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT {COLUMNS} FROM users WHERE status = 'pending' ORDER BY id")
+        users = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return users
+
+    @staticmethod
+    def approve(user_id):
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            f"UPDATE users SET status = 'approved' WHERE id = %s RETURNING {COLUMNS}",
+            (user_id,),
+        )
+        user = cursor.fetchone()
+        connection.commit()
+        cursor.close()
+        connection.close()
+        return user
+
+    @staticmethod
+    def get_permissions(user_id):
+        """The specific admin-panel features a moderator has been granted
+        (see moderator_permissions, migrations/005...). Meaningless for an
+        'admin' staff_role, which always has every permission implicitly."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT permission FROM moderator_permissions WHERE user_id = %s ORDER BY permission",
+            (user_id,),
+        )
+        permissions = [row["permission"] for row in cursor.fetchall()]
+        cursor.close()
+        connection.close()
+        return permissions
+
+    @staticmethod
+    def set_permissions(user_id, permissions):
+        """Replaces this user's full permission set with the given list
+        (only meaningful while staff_role = 'moderator' — see DDD.md)."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM moderator_permissions WHERE user_id = %s", (user_id,))
+        for permission in permissions:
+            cursor.execute(
+                "INSERT INTO moderator_permissions (user_id, permission) VALUES (%s, %s)",
+                (user_id, permission),
+            )
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+    @staticmethod
     def create(first_name, last_name, graduation_year, email):
         connection = get_connection()
         cursor = connection.cursor()
@@ -122,6 +186,18 @@ class User:
         connection = get_connection()
         cursor = connection.cursor()
         cursor.execute(f"SELECT {COLUMNS} FROM users ORDER BY id")
+        users = cursor.fetchall()
+        cursor.close()
+        connection.close()
+        return users
+
+    @staticmethod
+    def get_approved():
+        """The public alumni directory — pending registrations are hidden
+        until an admin/permitted moderator approves them."""
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT {COLUMNS} FROM users WHERE status = 'approved' ORDER BY id")
         users = cursor.fetchall()
         cursor.close()
         connection.close()

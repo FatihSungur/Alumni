@@ -57,11 +57,14 @@ def job_postings_collection():
             request.form.get("posted_by"),
             request.form.get("posted_date"),
         )
-        return redirect(url_for("job_posting.job_postings_collection"))
+        return redirect(url_for(
+            "job_posting.job_postings_collection",
+            error="Job posting submitted. It will appear once approved by staff.",
+        ))
 
     return render_template(
         "job_postings/list.html",
-        job_postings=JobPosting.get_all(),
+        job_postings=JobPosting.get_approved(),
         error=request.args.get("error"),
     )
 
