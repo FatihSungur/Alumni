@@ -55,7 +55,9 @@ Alumni-Web-Programming/
 ├── templates/                          # View: HTML pages rendered by the controllers (Jinja2 templates)
 │   ├── index.html
 │   ├── about.html
-│   ├── 404.html                        # Generic "page not found" page, shown by the 404 guardian
+│   ├── 404.html                        # Generic "page not found" page, shown by the 404 guardian and every per-resource "not found"
+│   ├── 403.html                        # Generic "forbidden" page, shown by the auth guardian
+│   ├── 500.html                        # Generic "something went wrong" page, shown by the 5xx guardian
 │   ├── register.html                   # Account creation form (role: alumni or student)
 │   ├── login.html                      # Login form
 │   ├── users/

@@ -27,11 +27,7 @@ def job_applications_collection():
       200:
         description: HTML page listing job applications
       302:
-        description: Redirect back to the list after creating an application
-      302:
-        description: Redirect to /login if not logged in (guests can't apply)
-      409:
-        description: This user already applied to this job
+        description: Redirect back to the list after creating an application, to /login if not logged in, or back with an error if already applied
     """
     if request.method == "POST":
         guard = require_role()
@@ -44,11 +40,16 @@ def job_applications_collection():
             request.form.get("applied_date"),
         )
         if application is None:
-            return "This user has already applied to this job. Go back and try again.", 409
+            return redirect(url_for(
+                "job_application.job_applications_collection",
+                error="This user has already applied to this job",
+            ))
         return redirect(url_for("job_application.job_applications_collection"))
 
     return render_template(
-        "job_applications/list.html", applications=JobApplication.get_all()
+        "job_applications/list.html",
+        applications=JobApplication.get_all(),
+        error=request.args.get("error"),
     )
 
 
@@ -75,7 +76,7 @@ def delete_job_application(application_id):
     """
     application = JobApplication.get_by_id(application_id)
     if application is None:
-        return "Application not found", 404
+        return render_template("404.html"), 404
 
     JobApplication.delete(application_id)
     return redirect(url_for("job_application.job_applications_collection"))

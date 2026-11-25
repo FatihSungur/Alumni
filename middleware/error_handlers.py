@@ -33,4 +33,4 @@ def register_error_handlers(app):
             request.path,
             traceback.format_exc(),
         )
-        return "Something went wrong on our end. Please try again later.", 500
+        return render_template("500.html"), 500

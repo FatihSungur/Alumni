@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import jsonify, redirect, session, url_for
+from flask import jsonify, redirect, render_template, session, url_for
 
 STAFF_ROLES = ("admin", "moderator")
 
@@ -21,7 +21,7 @@ def require_role(*allowed_roles):
         return redirect(url_for("auth.login", error="Please log in to continue"))
 
     if allowed_roles and not _is_authorized(allowed_roles):
-        return "Forbidden: you don't have permission to do this", 403
+        return render_template("403.html"), 403
 
     return None
 

@@ -79,7 +79,7 @@ def edit_user(user_id):
     """
     user = User.get_by_id(user_id)
     if user is None:
-        return "User not found", 404
+        return render_template("404.html"), 404
 
     if request.method == "POST":
         User.update(
@@ -117,7 +117,7 @@ def delete_user(user_id):
     """
     user = User.get_by_id(user_id)
     if user is None:
-        return "User not found", 404
+        return render_template("404.html"), 404
 
     User.delete(user_id)
     return redirect(url_for("user.users_collection"))

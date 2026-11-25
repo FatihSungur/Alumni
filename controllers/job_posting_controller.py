@@ -103,7 +103,7 @@ def edit_job_posting(job_posting_id):
     """
     job_posting = JobPosting.get_by_id(job_posting_id)
     if job_posting is None:
-        return "Job posting not found", 404
+        return render_template("404.html"), 404
 
     if request.method == "POST":
         JobPosting.update(
@@ -142,7 +142,7 @@ def delete_job_posting(job_posting_id):
     """
     job_posting = JobPosting.get_by_id(job_posting_id)
     if job_posting is None:
-        return "Job posting not found", 404
+        return render_template("404.html"), 404
 
     JobPosting.delete(job_posting_id)
     return redirect(url_for("job_posting.job_postings_collection"))

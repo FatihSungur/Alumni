@@ -71,7 +71,7 @@ def edit_announcement(announcement_id):
     """
     announcement = Announcement.get_by_id(announcement_id)
     if announcement is None:
-        return "Announcement not found", 404
+        return render_template("404.html"), 404
 
     if request.method == "POST":
         Announcement.update(
@@ -108,7 +108,7 @@ def delete_announcement(announcement_id):
     """
     announcement = Announcement.get_by_id(announcement_id)
     if announcement is None:
-        return "Announcement not found", 404
+        return render_template("404.html"), 404
 
     Announcement.delete(announcement_id)
     return redirect(url_for("announcement.announcements_collection"))
